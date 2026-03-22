@@ -1,0 +1,409 @@
+# CLAUDE.md — Incident Knowledge Base RAG UI
+
+## Project Overview
+
+Internal support team portal for logging incidents, managing a knowledge base, configuring agent rules, and querying all of it via natural language using Retrieval-Augmented Generation (RAG). The frontend is a Next.js application that communicates exclusively with an existing FastAPI backend.
+
+**The existing backend** already leverages the Microsoft AI Agent framework to automate IT incident workflows: processing incidents, performing AI-driven root cause analysis (RCA), applying fixes, validating resolutions, integrating with ITSM, and sending notifications. The RAG and KB capabilities described here are being added on top of that existing automation pipeline.
+
+The RAG pipeline retrieves from **two source types**:
+- **Incidents** — reactive records of past/ongoing issues, their impact, and fixes
+- **Knowledge Base (KB) articles** — proactive documentation: runbooks, SOPs, troubleshooting guides, FAQs, configuration references
+
+**Rules** define the non-negotiable boundaries and behavioral configuration for:
+- **RAG behavior** — relevance thresholds, source preferences, staleness policies, hallucination safeguards
+- **Agent guardrails** — what the agent can and cannot do autonomously within the incident automation workflow
+
+Rules are admin-only. They are consumed by the FastAPI backend and passed to the Microsoft AI Agent framework to govern its orchestration and decision-making.
+
+This repository contains **only the frontend**. The backend is a separate FastAPI service.
+
+---
+
+## Tech Stack
+
+- **Framework:** Next.js 14+ (App Router)
+- **Language:** TypeScript (strict mode)
+- **Styling:** Tailwind CSS
+- **Component Library:** shadcn/ui
+- **Theme:** Dark/Light mode via `next-themes`
+- **Package Manager:** npm
+
+---
+
+## Project Structure
+
+```
+src/
+├── app/                        # Next.js App Router pages
+│   ├── layout.tsx              # Root layout (ThemeProvider, sidebar, nav)
+│   ├── page.tsx                # Dashboard (recent incidents, KB stats, quick search)
+│   ├── ask/
+│   │   └── page.tsx            # RAG query interface (searches both incidents & KB)
+│   ├── incidents/
+│   │   ├── page.tsx            # Incident list with filters
+│   │   ├── new/
+│   │   │   └── page.tsx        # Create incident form
+│   │   └── [id]/
+│   │       ├── page.tsx        # Incident detail view
+│   │       └── edit/
+│   │           └── page.tsx    # Edit incident form
+│   ├── kb/
+│   │   ├── page.tsx            # KB article list with filters
+│   │   ├── new/
+│   │   │   └── page.tsx        # Create KB article
+│   │   └── [id]/
+│   │       ├── page.tsx        # KB article detail/reader view
+│   │       └── edit/
+│   │           └── page.tsx    # Edit KB article
+│   └── settings/               # Admin-only section
+│       ├── page.tsx            # Settings overview / service catalog & team management
+│       └── rules/
+│           ├── page.tsx        # Rules list (all RAG behavior + agent guardrail rules)
+│           ├── new/
+│           │   └── page.tsx    # Create rule
+│           └── [id]/
+│               └── edit/
+│                   └── page.tsx # Edit rule
+├── components/
+│   ├── ui/                     # shadcn/ui primitives (button, input, card, etc.)
+│   ├── layout/                 # Sidebar, Navbar, ThemeToggle
+│   ├── incidents/              # IncidentForm, IncidentCard, IncidentTable, StatusBadge
+│   ├── kb/                     # ArticleForm, ArticleCard, ArticleTable, CategoryBadge
+│   ├── rules/                  # RuleForm, RuleCard, RuleTable, RuleCategoryBadge
+│   ├── ask/                    # QueryInput, AnswerPanel, SourceCard, ConversationPanel
+│   └── dashboard/              # StatsCards, RecentIncidentsList, RecentArticlesList
+├── lib/
+│   ├── api/                    # API service layer (one file per resource)
+│   │   ├── client.ts           # Base fetch wrapper (base URL, headers, error handling)
+│   │   ├── incidents.ts        # Incident CRUD functions
+│   │   ├── kb.ts               # KB article CRUD functions
+│   │   ├── rules.ts            # Rule CRUD functions (admin-only)
+│   │   ├── ask.ts              # RAG query functions
+│   │   ├── services.ts         # Service catalog functions
+│   │   └── teams.ts            # Team/group functions
+│   ├── types/                  # Shared TypeScript interfaces
+│   │   ├── incident.ts         # Incident, IncidentFormData, IncidentFilters
+│   │   ├── kb.ts               # KbArticle, KbArticleFormData, KbArticleFilters
+│   │   ├── rule.ts             # Rule, RuleFormData, RuleCategory
+│   │   ├── ask.ts              # AskQuery, AskResponse, SourceReference
+│   │   └── common.ts           # PaginatedResponse, ApiError, SelectOption
+│   ├── mock/                   # Mock data and handlers (used until backend is ready)
+│   │   ├── incidents.ts
+│   │   ├── kb.ts
+│   │   ├── rules.ts
+│   │   ├── services.ts
+│   │   └── teams.ts
+│   ├── utils.ts                # General utility functions
+│   └── constants.ts            # App-wide constants (severity levels, status values, categories, rule categories, etc.)
+├── hooks/                      # Custom React hooks
+│   ├── use-incidents.ts        # Incident data fetching/mutation hooks
+│   ├── use-kb.ts               # KB article data fetching/mutation hooks
+│   ├── use-rules.ts            # Rule data fetching/mutation hooks
+│   └── use-ask.ts              # RAG query hook (with streaming support)
+└── styles/
+    └── globals.css             # Tailwind base + shadcn CSS variables
+```
+
+---
+
+## Core Data Model
+
+```typescript
+// lib/types/incident.ts
+
+type IncidentStatus = "open" | "investigating" | "resolved" | "closed";
+type IncidentSeverity = "low" | "medium" | "high" | "critical";
+
+interface Incident {
+  id: string;
+  title: string;
+  description: string;            // markdown
+  impacted_services: string[];    // IDs from service catalog
+  fix_details: string | null;     // markdown, null if unresolved
+  responsible_team: string;       // team ID
+  status: IncidentStatus;
+  severity: IncidentSeverity;
+  created_by: string;
+  created_at: string;             // ISO 8601
+  updated_at: string;
+  resolved_at: string | null;
+}
+
+interface IncidentFormData {
+  title: string;
+  description: string;
+  impacted_services: string[];
+  fix_details: string | null;
+  responsible_team: string;
+  severity: IncidentSeverity;
+}
+```
+
+```typescript
+// lib/types/kb.ts
+
+type KbArticleStatus = "draft" | "published" | "archived";
+type KbArticleCategory =
+  | "runbook"
+  | "troubleshooting"
+  | "faq"
+  | "sop"
+  | "configuration"
+  | "architecture"
+  | "general";
+
+interface KbArticle {
+  id: string;
+  title: string;
+  content: string;                // markdown — the main article body
+  summary: string;                // short plain-text summary for search result previews
+  category: KbArticleCategory;
+  tags: string[];                 // freeform tags for filtering and retrieval
+  related_services: string[];     // IDs from service catalog
+  status: KbArticleStatus;
+  created_by: string;
+  created_at: string;             // ISO 8601
+  updated_at: string;
+  published_at: string | null;
+}
+
+interface KbArticleFormData {
+  title: string;
+  content: string;
+  summary: string;
+  category: KbArticleCategory;
+  tags: string[];
+  related_services: string[];
+  status: KbArticleStatus;
+}
+```
+
+```typescript
+// lib/types/rule.ts
+
+// Two categories matching what the Microsoft AI Agent framework consumes
+type RuleCategory = "rag_behavior" | "agent_guardrail";
+
+interface Rule {
+  id: string;
+  title: string;                  // short name, e.g. "Staleness Disclaimer Required"
+  description: string;            // markdown — the full rule definition and rationale
+  category: RuleCategory;
+  priority: number;               // ordering weight — lower number = higher priority (evaluated first)
+  is_enabled: boolean;            // toggle rule on/off without deleting
+  created_by: string;
+  created_at: string;             // ISO 8601
+  updated_at: string;
+}
+
+interface RuleFormData {
+  title: string;
+  description: string;
+  category: RuleCategory;
+  priority: number;
+  is_enabled: boolean;
+}
+```
+
+**Rule category definitions:**
+
+`rag_behavior` — Controls how the RAG pipeline retrieves and generates answers. Examples:
+- "Never suggest a fix from a resolved incident older than 6 months without appending a staleness disclaimer."
+- "Always prioritize published KB articles over draft articles in retrieval results."
+- "If no retrieved sources exceed a 0.7 relevance score, respond with 'Insufficient context to provide a reliable answer' instead of generating a speculative response."
+- "When a query matches both an incident fix and a KB runbook, surface the KB runbook first."
+- "Do not include archived KB articles in retrieval results."
+
+`agent_guardrail` — Defines what the agent can and cannot do autonomously within the existing incident automation workflow (RCA, fix application, validation, ITSM integration, notifications). Examples:
+- "Agent must not auto-close incidents without explicit human confirmation."
+- "Agent-generated fix suggestions must cite at least one source (incident or KB article)."
+- "Agent must not modify KB articles — only suggest edits and queue for human review."
+- "Agent must not apply a fix to production services without approval from the responsible team lead."
+- "Agent must log all autonomous actions to the incident timeline with full reasoning trace."
+- "Agent must not send external ITSM updates for incidents classified as severity: low without human review."
+
+```typescript
+// lib/types/ask.ts
+
+// Discriminated union so the UI can render incident sources and KB sources differently
+type SourceReference =
+  | { type: "incident"; data: Incident }
+  | { type: "kb_article"; data: KbArticle };
+
+interface AskQuery {
+  query: string;
+  source_types?: ("incident" | "kb_article")[]; // optional filter: search only incidents, only KB, or both (default)
+  filters?: {
+    status?: IncidentStatus[];
+    severity?: IncidentSeverity[];
+    services?: string[];
+    team?: string;
+    kb_category?: KbArticleCategory[];
+    kb_tags?: string[];
+  };
+}
+
+interface AskResponse {
+  answer: string;                 // LLM-generated markdown
+  sources: SourceReference[];     // retrieved items used as context, ranked by relevance
+}
+```
+
+---
+
+## API Contract
+
+The frontend communicates with the FastAPI backend at a configurable base URL (`NEXT_PUBLIC_API_URL`).
+
+| Method | Endpoint               | Purpose                                      |
+|--------|------------------------|----------------------------------------------|
+| POST   | /api/incidents         | Create incident                              |
+| GET    | /api/incidents         | List incidents (query params for filters/pagination) |
+| GET    | /api/incidents/{id}    | Get incident detail                          |
+| PUT    | /api/incidents/{id}    | Update incident                              |
+| DELETE | /api/incidents/{id}    | Delete incident                              |
+| POST   | /api/kb                | Create KB article                            |
+| GET    | /api/kb                | List KB articles (query params for filters/pagination) |
+| GET    | /api/kb/{id}           | Get KB article detail                        |
+| PUT    | /api/kb/{id}           | Update KB article                            |
+| DELETE | /api/kb/{id}           | Delete KB article                            |
+| POST   | /api/rules             | Create rule (admin-only)                     |
+| GET    | /api/rules             | List rules (filterable by category, enabled status) |
+| GET    | /api/rules/{id}        | Get rule detail                              |
+| PUT    | /api/rules/{id}        | Update rule (admin-only)                     |
+| DELETE | /api/rules/{id}        | Delete rule (admin-only)                     |
+| POST   | /api/ask               | RAG query → returns answer + sources (incidents & KB) |
+| GET    | /api/services          | List service catalog entries                 |
+| GET    | /api/teams             | List teams/groups                            |
+
+**Authorization notes:**
+- All `/api/rules` endpoints require admin role. The API layer should pass auth tokens and the backend enforces role-based access.
+- All other endpoints are accessible to any authenticated support agent.
+
+**Response conventions (matching FastAPI/Pydantic):**
+- Field names use `snake_case` (matching Python backend).
+- Paginated lists return `{ items: T[], total: number, page: number, page_size: number }`.
+- Errors return `{ detail: string }` with appropriate HTTP status codes.
+
+---
+
+## API Service Layer Pattern
+
+All API calls go through `lib/api/client.ts`, which wraps `fetch` with:
+- Base URL from environment variable
+- JSON content-type headers
+- Auth token injection (when auth is implemented)
+- Standardized error handling that throws typed `ApiError`
+
+Each resource file (`incidents.ts`, `ask.ts`, etc.) exports plain async functions:
+
+```typescript
+// Example: lib/api/incidents.ts
+export async function getIncidents(filters?: IncidentFilters): Promise<PaginatedResponse<Incident>> { ... }
+export async function getIncident(id: string): Promise<Incident> { ... }
+export async function createIncident(data: IncidentFormData): Promise<Incident> { ... }
+```
+
+**Mock mode:** When `NEXT_PUBLIC_USE_MOCK=true`, the client module returns mock data instead of making network calls. This keeps development unblocked while the backend is pending.
+
+---
+
+## Coding Conventions
+
+### General
+- Use TypeScript strict mode. No `any` types unless absolutely unavoidable (and add a comment explaining why).
+- Prefer named exports over default exports, except for page components (`page.tsx`) which Next.js requires as defaults.
+- Use `snake_case` for API response fields (to match FastAPI/Pydantic). Use `camelCase` for internal frontend-only variables and function names.
+- Keep components focused — one component per file, file name matches component name in PascalCase.
+
+### Components
+- All reusable UI components live in `components/ui/` (shadcn primitives) or feature-specific folders.
+- Use shadcn/ui components as the building blocks. Do not install additional component libraries.
+- Props interfaces are defined in the same file as the component, named `{ComponentName}Props`.
+- Avoid prop drilling beyond 2 levels — use React context or composition instead.
+
+### Styling
+- Use Tailwind utility classes exclusively. No custom CSS files except `globals.css` for shadcn variables.
+- Do not use inline `style` attributes.
+- Use shadcn's CSS variable-based theming. Colors reference semantic tokens (`bg-background`, `text-foreground`, `border-border`, etc.), never raw Tailwind colors like `bg-gray-800`. This ensures dark/light mode works correctly.
+- Responsive design: mobile-first approach. The app should be usable on tablet at minimum.
+
+### State Management
+- Server state (API data): use React hooks with `fetch` in the API layer. Consider `swr` or `react-query` if caching/revalidation needs grow.
+- Client state (UI state like form inputs, modals): use React `useState` / `useReducer`. No global state library unless complexity demands it.
+- Form state: use `react-hook-form` with `zod` for validation.
+
+### File and Folder Naming
+- Folders: `kebab-case`
+- Component files: `PascalCase.tsx`
+- Non-component files (utils, hooks, types, api): `kebab-case.ts`
+- Type definition files: `kebab-case.ts` inside `lib/types/`
+
+---
+
+## Environment Variables
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000    # FastAPI backend URL
+NEXT_PUBLIC_USE_MOCK=true                    # Toggle mock data mode
+```
+
+---
+
+## Key UX Decisions
+
+- **Incident form:** Sectioned layout — metadata (title, severity, team) on top, description and fix details as markdown editors below, impacted services as a multi-select tag input.
+- **KB article form:** Title and summary on top, category dropdown and freeform tag input in a metadata sidebar, full markdown editor for content body, related services as multi-select, status toggle (draft/published). The form should feel like a lightweight CMS editor.
+- **KB article reader (`/kb/[id]`):** Clean rendered markdown view with a metadata sidebar showing category, tags, related services, author, and dates. Links to related incidents or other KB articles if available.
+- **KB article list (`/kb`):** Filterable table/card view by category, tags, status, and related services. Search bar for text filtering. Published vs draft tabs.
+- **RAG query page (`/ask`):** Search bar at top with a source type toggle (All / Incidents only / KB only). Results as ranked cards below — incident sources and KB sources render with distinct visual styles (different icons, color accents) so agents can immediately tell what type of source they're looking at. Optional conversational follow-up panel.
+- **Dashboard:** Stats cards (open incidents, critical count, avg resolution time, total KB articles, recently published KB articles), recent incidents table, quick-search that routes to `/ask`.
+- **Settings:** Service catalog, team management, and KB category management.
+- **Rules management (`/settings/rules`):** Admin-only. List view shows all rules grouped or filterable by category (RAG Behavior / Agent Guardrail) with enable/disable toggles inline. Each rule card shows title, category badge, priority, and enabled status. The form is a structured text entry — title, category dropdown, priority number input, description as a markdown editor for the full rule definition and rationale, and an enabled toggle. Rules are ordered by priority (lower = higher priority = evaluated first by the agent). Disabled rules are visually dimmed but remain in the list for reference.
+- **Dark/light mode:** Toggle in the top nav. Persists via `next-themes` (localStorage). Defaults to system preference.
+
+---
+
+## Backend Context (For Reference Only — Not Built Here)
+
+The FastAPI backend this frontend connects to has **two layers**:
+
+**Existing incident automation pipeline (already built):**
+- Leverages the Microsoft AI Agent framework to automate IT incident workflows
+- Processes incoming incidents and performs AI-driven root cause analysis (RCA)
+- Applies fixes, validates resolutions, and integrates with ITSM systems
+- Sends notifications for faster, intelligent IT service management
+
+**RAG and KB layer (being added):**
+- Handles incident, KB article, and rule CRUD and persistence (Azure Cosmos DB)
+- Runs RAG orchestration: query → Azure AI Search (hybrid retrieval across both incident and KB indexes) → Azure OpenAI (answer generation)
+- Indexes both incidents and KB articles into Azure AI Search (with embeddings via Azure OpenAI) for unified retrieval
+- Will serve a streaming endpoint (`/api/ask/stream`) for real-time answer generation
+
+**Rules integration:**
+- Rules stored in the database are loaded by the agent framework at orchestration time
+- `rag_behavior` rules are injected into the RAG pipeline configuration (relevance thresholds, source filtering, response policies)
+- `agent_guardrail` rules are injected into the agent's system prompt and tool-use constraints, governing what autonomous actions are permitted during RCA, fix application, validation, and ITSM updates
+- The `priority` field determines evaluation order — when rules conflict, lower-priority-number rules take precedence
+- The `is_enabled` flag allows admins to toggle rules without deleting them, useful for A/B testing agent behavior or temporarily relaxing constraints during incident surges
+
+---
+
+## Commands
+
+```bash
+npm install           # Install dependencies
+npm run dev           # Start dev server (default: localhost:3000)
+npm run build         # Production build
+npm run lint          # Run ESLint
+```
+
+---
+
+## What Is NOT in Scope
+
+- Backend API implementation (lives in a separate FastAPI repo)
+- Authentication implementation (placeholder hooks exist; will integrate Azure Entra ID later)
+- Deployment/CI pipeline configuration
+- Direct calls to Azure services from the frontend — all Azure interactions go through FastAPI
