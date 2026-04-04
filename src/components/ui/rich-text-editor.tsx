@@ -150,7 +150,6 @@ export function RichTextEditor({
   const handleLinkInsert = useCallback(() => {
     if (!editor) return;
 
-    // eslint-disable-next-line no-alert -- intentional: simple UX for link insertion
     const url = window.prompt("Enter URL:");
 
     if (url === null) {
