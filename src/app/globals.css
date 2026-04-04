@@ -170,20 +170,3 @@
     linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
   background-size: 40px 40px;
 }
-
-/* ── Markdown Prose ─── */
-.prose-incident h1,
-.prose-incident h2,
-.prose-incident h3 {
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-.prose-incident code {
-  font-size: 0.875em;
-  padding: 0.15em 0.35em;
-  border-radius: 0.25rem;
-  background: #f5f5f5;
-}
-.dark .prose-incident code {
-  background: #1a1a1e;
-}
