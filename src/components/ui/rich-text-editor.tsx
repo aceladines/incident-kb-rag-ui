@@ -92,6 +92,7 @@ export function RichTextEditor({
   const isUpdatingRef = useRef(false);
 
   const editor = useEditor({
+    content: marked(value ?? "", { async: false }) as string,
     extensions: [
       StarterKit.configure({
         codeBlock: {

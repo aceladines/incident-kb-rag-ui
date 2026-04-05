@@ -56,6 +56,7 @@ export function RuleForm({ defaultValues, onSubmit, isSubmitting = false }: Rule
     control,
     formState: { errors },
   } = useForm<RuleSchemaValues>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- zod v4 + @hookform/resolvers type mismatch
     resolver: zodResolver(ruleSchema) as any,
     defaultValues: defaultValues ?? {
       title: "",
@@ -194,8 +195,11 @@ export function RuleForm({ defaultValues, onSubmit, isSubmitting = false }: Rule
         </CardContent>
       </Card>
 
-      {/* Submit */}
+      {/* Actions */}
       <div className="flex items-center justify-end gap-3">
+        <Button type="button" variant="outline" onClick={() => window.history.back()}>
+          Cancel
+        </Button>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
           {defaultValues ? "Save Changes" : "Create Rule"}
