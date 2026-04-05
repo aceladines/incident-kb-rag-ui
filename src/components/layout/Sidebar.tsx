@@ -59,7 +59,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         <Link href="/" className="flex items-center gap-2.5 overflow-hidden">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 border-primary">
             <span className="font-mono text-[11px] font-extrabold text-primary">
-              IK
+              XYZ
             </span>
           </div>
           <AnimatePresence>
@@ -71,7 +71,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 transition={{ duration: 0.2 }}
                 className="whitespace-nowrap font-mono text-[11px] font-semibold uppercase tracking-widest text-sidebar-foreground"
               >
-                Incident KB
+                SENTRY
               </motion.span>
             )}
           </AnimatePresence>

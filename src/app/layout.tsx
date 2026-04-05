@@ -16,8 +16,8 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Incident KB",
-    template: "%s | Incident KB",
+    default: "XYZ",
+    template: "%s | XYZ",
   },
   description:
     "Internal support portal for incident logging, knowledge base management, and RAG-powered retrieval",
@@ -32,6 +32,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
+      data-scroll-behavior="smooth"
       className={`${spaceGrotesk.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-background text-foreground">

@@ -2,7 +2,6 @@
 
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import { marked } from "marked";
 import TurndownService from "turndown";
@@ -11,6 +10,7 @@ import {
   Bold,
   Italic,
   Strikethrough,
+  Heading1,
   Heading2,
   Heading3,
   List,
@@ -92,6 +92,7 @@ export function RichTextEditor({
   const isUpdatingRef = useRef(false);
 
   const editor = useEditor({
+    immediatelyRender: false,
     content: marked(value ?? "", { async: false }) as string,
     extensions: [
       StarterKit.configure({
@@ -100,11 +101,11 @@ export function RichTextEditor({
             class: "rounded-md bg-muted px-4 py-3 font-mono text-sm text-foreground",
           },
         },
-      }),
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: "text-primary underline underline-offset-4",
+        link: {
+          openOnClick: false,
+          HTMLAttributes: {
+            class: "text-primary underline underline-offset-4",
+          },
         },
       }),
       Placeholder.configure({
@@ -200,6 +201,14 @@ export function RichTextEditor({
         <ToolbarSeparator />
 
         {/* Headings */}
+        <ToolbarButton
+          onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}
+          isActive={editor?.isActive("heading", { level: 1 })}
+          disabled={!editor}
+          title="Heading 1"
+        >
+          <Heading1 size={16} />
+        </ToolbarButton>
         <ToolbarButton
           onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
           isActive={editor?.isActive("heading", { level: 2 })}

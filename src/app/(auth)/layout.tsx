@@ -26,10 +26,10 @@ export default function AuthLayout({
         {/* Logo */}
         <div className="relative z-10 flex items-center gap-2.5">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 border-primary">
-            <span className="font-mono text-xs font-extrabold text-primary">IK</span>
+            <span className="font-mono text-xs font-extrabold text-primary">XYZ</span>
           </div>
           <span className="font-mono text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-            Incident KB
+            SENTRY
           </span>
         </div>
 

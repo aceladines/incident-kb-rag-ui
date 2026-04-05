@@ -92,7 +92,7 @@ export function SignupForm() {
         Create account.
       </h2>
       <p className="mt-1 text-[13px] text-muted-foreground">
-        Get started with Incident KB
+        Get started with XYZ Incident & KBs RAG
       </p>
 
       <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">
