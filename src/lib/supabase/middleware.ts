@@ -56,5 +56,15 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Role-based route protection: /settings/rules* requires admin role
+  if (user && request.nextUrl.pathname.startsWith("/settings/rules")) {
+    const role = (user.app_metadata?.role as string) ?? "agent";
+    if (role !== "admin") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
+  }
+
   return supabaseResponse;
 }
