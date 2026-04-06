@@ -22,11 +22,15 @@ This repository contains **only the frontend**. The backend is a separate FastAP
 
 ## Tech Stack
 
-- **Framework:** Next.js 14+ (App Router)
+- **Framework:** Next.js 16 (App Router, Turbopack)
 - **Language:** TypeScript (strict mode)
-- **Styling:** Tailwind CSS
-- **Component Library:** shadcn/ui
-- **Theme:** Dark/Light mode via `next-themes`
+- **Styling:** Tailwind CSS v4 (CSS-based config, no tailwind.config.ts)
+- **Component Library:** shadcn/ui v4 (uses `@base-ui/react`, NOT Radix — no `asChild` prop, use `render` prop instead)
+- **Theme:** Dark/Light mode via `next-themes`, red-accented enterprise theme
+- **Authentication:** Supabase Auth (`@supabase/ssr`) — will migrate to Azure Entra ID later
+- **Animations:** Framer Motion
+- **Forms:** react-hook-form + zod + @hookform/resolvers
+- **Markdown:** react-markdown + remark-gfm
 - **Package Manager:** npm
 
 ---
@@ -35,74 +39,78 @@ This repository contains **only the frontend**. The backend is a separate FastAP
 
 ```
 src/
-├── app/                        # Next.js App Router pages
-│   ├── layout.tsx              # Root layout (ThemeProvider, sidebar, nav)
-│   ├── page.tsx                # Dashboard (recent incidents, KB stats, quick search)
-│   ├── ask/
-│   │   └── page.tsx            # RAG query interface (searches both incidents & KB)
-│   ├── incidents/
-│   │   ├── page.tsx            # Incident list with filters
-│   │   ├── new/
-│   │   │   └── page.tsx        # Create incident form
-│   │   └── [id]/
-│   │       ├── page.tsx        # Incident detail view
-│   │       └── edit/
-│   │           └── page.tsx    # Edit incident form
-│   ├── kb/
-│   │   ├── page.tsx            # KB article list with filters
-│   │   ├── new/
-│   │   │   └── page.tsx        # Create KB article
-│   │   └── [id]/
-│   │       ├── page.tsx        # KB article detail/reader view
-│   │       └── edit/
-│   │           └── page.tsx    # Edit KB article
-│   └── settings/               # Admin-only section
-│       ├── page.tsx            # Settings overview / service catalog & team management
-│       └── rules/
-│           ├── page.tsx        # Rules list (all RAG behavior + agent guardrail rules)
-│           ├── new/
-│           │   └── page.tsx    # Create rule
-│           └── [id]/
-│               └── edit/
-│                   └── page.tsx # Edit rule
+├── proxy.ts                    # Next.js 16 proxy (auth session refresh + route protection)
+├── app/
+│   ├── layout.tsx              # Root layout (ThemeProvider, Toaster)
+│   ├── globals.css             # Tailwind v4 config + red-accented theme CSS variables
+│   ├── (auth)/                 # Auth route group (no sidebar)
+│   │   ├── layout.tsx          # Centered auth layout
+│   │   ├── login/page.tsx      # Login page
+│   │   └── signup/page.tsx     # Signup page
+│   └── (dashboard)/            # Dashboard route group (sidebar + navbar)
+│       ├── layout.tsx          # AppShell wrapper
+│       ├── page.tsx            # Dashboard (stats, recent items, quick search)
+│       ├── ask/
+│       │   ├── page.tsx        # Suspense wrapper for RAG query
+│       │   └── ask-client.tsx  # RAG query interface (client component)
+│       ├── incidents/
+│       │   ├── page.tsx        # Incident list with filters
+│       │   ├── new/page.tsx    # Create incident form
+│       │   └── [id]/
+│       │       ├── page.tsx    # Incident detail view
+│       │       └── edit/page.tsx # Edit incident form
+│       ├── kb/
+│       │   ├── page.tsx        # KB article list with filters
+│       │   ├── new/page.tsx    # Create KB article
+│       │   └── [id]/
+│       │       ├── page.tsx    # KB article reader view
+│       │       └── edit/page.tsx # Edit KB article
+│       └── settings/
+│           ├── page.tsx        # Service catalog + team management
+│           └── rules/
+│               ├── page.tsx    # Rules list (RAG behavior + agent guardrails)
+│               ├── new/page.tsx # Create rule
+│               └── [id]/edit/page.tsx # Edit rule
 ├── components/
-│   ├── ui/                     # shadcn/ui primitives (button, input, card, etc.)
-│   ├── layout/                 # Sidebar, Navbar, ThemeToggle
-│   ├── incidents/              # IncidentForm, IncidentCard, IncidentTable, StatusBadge
-│   ├── kb/                     # ArticleForm, ArticleCard, ArticleTable, CategoryBadge
-│   ├── rules/                  # RuleForm, RuleCard, RuleTable, RuleCategoryBadge
-│   ├── ask/                    # QueryInput, AnswerPanel, SourceCard, ConversationPanel
-│   └── dashboard/              # StatsCards, RecentIncidentsList, RecentArticlesList
+│   ├── ui/                     # shadcn/ui v4 primitives (@base-ui/react)
+│   ├── layout/                 # AppShell, Sidebar, Navbar, ThemeToggle, MobileSidebar, UserNav
+│   ├── auth/                   # LoginForm, SignupForm
+│   ├── incidents/              # IncidentForm, IncidentTable, IncidentFilters, SeverityBadge, StatusBadge
+│   ├── kb/                     # ArticleForm, ArticleCard, ArticleFilters, CategoryBadge, StatusBadge
+│   ├── rules/                  # RuleForm, RuleCard, RuleCategoryBadge
+│   ├── ask/                    # QueryInput, AnswerPanel, SourceCard, SourceTypeToggle
+│   └── dashboard/              # StatsCards, RecentIncidentsList, RecentArticlesList, QuickSearch
 ├── lib/
-│   ├── api/                    # API service layer (one file per resource)
-│   │   ├── client.ts           # Base fetch wrapper (base URL, headers, error handling)
-│   │   ├── incidents.ts        # Incident CRUD functions
-│   │   ├── kb.ts               # KB article CRUD functions
-│   │   ├── rules.ts            # Rule CRUD functions (admin-only)
-│   │   ├── ask.ts              # RAG query functions
-│   │   ├── services.ts         # Service catalog functions
-│   │   └── teams.ts            # Team/group functions
+│   ├── api/                    # API service layer (mock mode via NEXT_PUBLIC_USE_MOCK)
+│   │   ├── client.ts           # Base fetch wrapper
+│   │   ├── incidents.ts        # Incident CRUD
+│   │   ├── kb.ts               # KB article CRUD
+│   │   ├── rules.ts            # Rule CRUD
+│   │   ├── ask.ts              # RAG query
+│   │   ├── services.ts         # Service catalog
+│   │   └── teams.ts            # Teams
 │   ├── types/                  # Shared TypeScript interfaces
-│   │   ├── incident.ts         # Incident, IncidentFormData, IncidentFilters
-│   │   ├── kb.ts               # KbArticle, KbArticleFormData, KbArticleFilters
-│   │   ├── rule.ts             # Rule, RuleFormData, RuleCategory
-│   │   ├── ask.ts              # AskQuery, AskResponse, SourceReference
-│   │   └── common.ts           # PaginatedResponse, ApiError, SelectOption
-│   ├── mock/                   # Mock data and handlers (used until backend is ready)
+│   │   ├── incident.ts, kb.ts, rule.ts, ask.ts, common.ts, auth.ts
+│   │   └── index.ts            # Barrel export
+│   ├── supabase/               # Supabase auth clients
+│   │   ├── client.ts           # Browser client (graceful fallback when not configured)
+│   │   ├── server.ts           # Server component client
+│   │   └── middleware.ts       # Session refresh helper for proxy.ts
+│   ├── mock/                   # Mock data (used until backend is ready)
 │   │   ├── incidents.ts
 │   │   ├── kb.ts
 │   │   ├── rules.ts
 │   │   ├── services.ts
 │   │   └── teams.ts
-│   ├── utils.ts                # General utility functions
-│   └── constants.ts            # App-wide constants (severity levels, status values, categories, rule categories, etc.)
+│   ├── animations.ts           # Shared framer-motion variants
+│   ├── utils.ts                # cn, formatDate, formatRelativeTime, truncate, etc.
+│   └── constants.ts            # Severity levels, status values, categories, nav items
 ├── hooks/                      # Custom React hooks
+│   ├── use-auth.ts             # Supabase auth state and actions
 │   ├── use-incidents.ts        # Incident data fetching/mutation hooks
 │   ├── use-kb.ts               # KB article data fetching/mutation hooks
 │   ├── use-rules.ts            # Rule data fetching/mutation hooks
-│   └── use-ask.ts              # RAG query hook (with streaming support)
-└── styles/
-    └── globals.css             # Tailwind base + shadcn CSS variables
+│   └── use-ask.ts              # RAG query hook
 ```
 
 ---
@@ -320,6 +328,12 @@ export async function createIncident(data: IncidentFormData): Promise<Incident> 
 ### Components
 - All reusable UI components live in `components/ui/` (shadcn primitives) or feature-specific folders.
 - Use shadcn/ui components as the building blocks. Do not install additional component libraries.
+- **CRITICAL: shadcn v4 uses `@base-ui/react`, NOT Radix UI.** Key API differences:
+  - No `asChild` prop. Use `render` prop instead: `<Button render={<Link href="/path" />}>text</Button>`
+  - Select `onValueChange` can receive `null` — always guard: `onValueChange={(val) => { if (val) ... }}`
+  - DropdownMenuContent has no `forceMount` prop
+  - TooltipProvider uses `delay` prop, not `delayDuration`
+  - Next.js 16 uses `proxy.ts` instead of `middleware.ts`
 - Props interfaces are defined in the same file as the component, named `{ComponentName}Props`.
 - Avoid prop drilling beyond 2 levels — use React context or composition instead.
 
@@ -347,7 +361,11 @@ export async function createIncident(data: IncidentFormData): Promise<Incident> 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000    # FastAPI backend URL
 NEXT_PUBLIC_USE_MOCK=true                    # Toggle mock data mode
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co  # Supabase project URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...              # Supabase anon key
 ```
+
+**Note:** Supabase auth gracefully degrades when not configured (placeholder values). The app remains functional in mock mode without valid Supabase credentials — auth is bypassed during build and development.
 
 ---
 
@@ -394,9 +412,12 @@ The FastAPI backend this frontend connects to has **two layers**:
 
 ```bash
 npm install           # Install dependencies
-npm run dev           # Start dev server (default: localhost:3000)
+npm run dev           # Start dev server with Turbopack (localhost:3000)
 npm run build         # Production build
 npm run lint          # Run ESLint
+npm run type-check    # TypeScript type checking (tsc --noEmit)
+npm run format        # Format with Prettier
+npm run format:check  # Check formatting
 ```
 
 ---
@@ -404,6 +425,6 @@ npm run lint          # Run ESLint
 ## What Is NOT in Scope
 
 - Backend API implementation (lives in a separate FastAPI repo)
-- Authentication implementation (placeholder hooks exist; will integrate Azure Entra ID later)
+- Azure Entra ID integration (currently using Supabase Auth; will migrate later)
 - Deployment/CI pipeline configuration
 - Direct calls to Azure services from the frontend — all Azure interactions go through FastAPI
