@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Confirm Your Account — XYZ SENTRY</title>
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+</head>
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+  <!-- Outer wrapper -->
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f5f5f5;">
+    <tr>
+      <td align="center" style="padding: 40px 16px;">
+        <!-- Email card -->
+        <table role="presentation" cellpadding="0" cellspacing="0" width="480" style="max-width: 480px; width: 100%; background-color: #ffffff; border: 1px solid #e5e5e5; border-radius: 6px; overflow: hidden;">
+
+          <!-- Header -->
+          <tr>
+            <td style="padding: 28px 32px; border-bottom: 1px solid #e5e5e5;">
+              <table role="presentation" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="vertical-align: middle;">
+                    <div style="width: 32px; height: 32px; border: 2px solid #dc2626; border-radius: 8px; text-align: center; line-height: 28px;">
+                      <span style="font-family: 'Courier New', Courier, monospace; font-size: 10px; font-weight: 800; color: #dc2626; letter-spacing: -0.02em;">XYZ</span>
+                    </div>
+                  </td>
+                  <td style="vertical-align: middle; padding-left: 10px;">
+                    <span style="font-family: 'Courier New', Courier, monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.15em; color: #888888; text-transform: uppercase;">SENTRY</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding: 36px 32px;">
+              <!-- Label -->
+              <p style="font-family: 'Courier New', Courier, monospace; font-size: 9px; font-weight: 600; letter-spacing: 0.2em; color: #999999; text-transform: uppercase; margin: 0 0 16px 0;">Email Verification</p>
+
+              <!-- Heading -->
+              <h1 style="font-size: 22px; font-weight: 800; color: #0a0a0a; margin: 0 0 12px 0; letter-spacing: -0.02em; line-height: 1.2;">Confirm your account.</h1>
+
+              <!-- Description -->
+              <p style="font-size: 14px; color: #666666; line-height: 1.6; margin: 0 0 28px 0;">You're one step away from accessing the incident management and knowledge retrieval platform. Verify your email to get started.</p>
+
+              <!-- CTA Button -->
+              <table role="presentation" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="border-radius: 6px; background-color: #dc2626;">
+                    <a href="{{ .ConfirmationURL }}" target="_blank" style="display: inline-block; padding: 12px 32px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #ffffff; text-decoration: none; border-radius: 6px;">Verify Email Address</a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Fallback link -->
+              <p style="font-size: 11px; color: #999999; margin-top: 20px; line-height: 1.5;">If the button doesn't work, copy and paste this link into your browser:</p>
+              <p style="font-size: 11px; color: #dc2626; margin-top: 4px; line-height: 1.5; word-break: break-all;">{{ .ConfirmationURL }}</p>
+
+              <!-- Dismissal -->
+              <p style="font-size: 11px; color: #999999; margin-top: 24px; line-height: 1.5;">If you didn't create an account, you can safely ignore this email.</p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 20px 32px; border-top: 1px solid #e5e5e5; background-color: #fafafa;">
+              <p style="font-family: 'Courier New', Courier, monospace; font-size: 9px; color: #999999; margin: 0; letter-spacing: 0.05em;">XYZ SENTRY &mdash; Incident &amp; Knowledge Base Platform</p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
