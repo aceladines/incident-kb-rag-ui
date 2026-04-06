@@ -16,8 +16,11 @@ import {
 import { mockServices } from "@/lib/mock/services";
 import { mockTeams } from "@/lib/mock/teams";
 import { staggerContainer, staggerItem } from "@/lib/animations";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function SettingsPage() {
+  const { isAdmin } = useAuth();
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -27,34 +30,38 @@ export default function SettingsPage() {
             Settings
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Manage services, teams, and agent rules.
+            {isAdmin
+              ? "Manage services, teams, and agent rules."
+              : "Manage services and teams."}
           </p>
         </div>
       </div>
 
       {/* Rules link card */}
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
-      >
-        <Link href="/settings/rules">
-          <Card className="group/rules transition-colors hover:bg-muted/30">
-            <CardContent className="flex items-center gap-4">
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                <ShieldCheck className="size-5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-foreground">Rules Management</p>
-                <p className="text-xs text-muted-foreground">
-                  Configure RAG behavior and agent guardrail rules.
-                </p>
-              </div>
-              <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover/rules:translate-x-1" />
-            </CardContent>
-          </Card>
-        </Link>
-      </motion.div>
+      {isAdmin && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+        >
+          <Link href="/settings/rules">
+            <Card className="group/rules transition-colors hover:bg-muted/30">
+              <CardContent className="flex items-center gap-4">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                  <ShieldCheck className="size-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground">Rules Management</p>
+                  <p className="text-xs text-muted-foreground">
+                    Configure RAG behavior and agent guardrail rules.
+                  </p>
+                </div>
+                <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover/rules:translate-x-1" />
+              </CardContent>
+            </Card>
+          </Link>
+        </motion.div>
+      )}
 
       {/* Service Catalog & Teams */}
       <motion.div

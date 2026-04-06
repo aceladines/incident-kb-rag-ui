@@ -14,9 +14,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { LogOut, Settings, User } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { cn } from "@/lib/utils";
 
 export function UserNav() {
-  const { user, signOut } = useAuth();
+  const { user, isAdmin, signOut } = useAuth();
   const router = useRouter();
 
   const handleSignOut = async () => {
@@ -47,6 +48,14 @@ export function UserNav() {
             <div className="flex flex-col space-y-1">
               <p className="text-sm font-medium leading-none">Account</p>
               <p className="text-xs leading-none text-muted-foreground">{email}</p>
+              <span className={cn(
+                "mt-1 inline-flex w-fit items-center rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider",
+                isAdmin
+                  ? "bg-primary/10 text-primary"
+                  : "bg-muted text-muted-foreground"
+              )}>
+                {isAdmin ? "Admin" : "Agent"}
+              </span>
             </div>
           </DropdownMenuLabel>
         </DropdownMenuGroup>
