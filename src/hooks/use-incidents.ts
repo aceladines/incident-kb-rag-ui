@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type {
   Incident,
   IncidentFilters,
@@ -16,110 +16,66 @@ import {
 } from "@/lib/api/incidents";
 
 export function useIncidents(filters?: IncidentFilters) {
-  const [data, setData] = useState<PaginatedResponse<Incident> | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const query = useQuery<PaginatedResponse<Incident>>({
+    queryKey: ["incidents", filters],
+    queryFn: () => getIncidents(filters),
+  });
 
-  const fetchIncidents = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const result = await getIncidents(filters);
-      setData(result);
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to fetch incidents";
-      setError(message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [filters]);
-
-  useEffect(() => {
-    fetchIncidents();
-  }, [fetchIncidents]);
-
-  return { data, isLoading, error, refetch: fetchIncidents };
+  return {
+    data: query.data ?? null,
+    isLoading: query.isLoading,
+    error: query.error ? (query.error as Error).message ?? "Failed to fetch incidents" : null,
+    refetch: query.refetch,
+  };
 }
 
 export function useIncident(id: string) {
-  const [data, setData] = useState<Incident | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const query = useQuery<Incident>({
+    queryKey: ["incidents", id],
+    queryFn: () => getIncident(id),
+  });
 
-  useEffect(() => {
-    const fetch = async () => {
-      setIsLoading(true);
-      try {
-        const result = await getIncident(id);
-        setData(result);
-      } catch (err: unknown) {
-        const message =
-          err instanceof Error ? err.message : "Failed to fetch incident";
-        setError(message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetch();
-  }, [id]);
-
-  return { data, isLoading, error };
+  return {
+    data: query.data ?? null,
+    isLoading: query.isLoading,
+    error: query.error ? (query.error as Error).message ?? "Failed to fetch incident" : null,
+  };
 }
 
 export function useIncidentMutations() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: ["incidents"] });
 
-  const create = useCallback(async (formData: IncidentFormData) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const result = await createIncident(formData);
-      return result;
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to create incident";
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const createMutation = useMutation({
+    mutationFn: (data: IncidentFormData) => createIncident(data),
+    onSuccess: invalidate,
+  });
 
-  const update = useCallback(
-    async (id: string, formData: IncidentFormData) => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const result = await updateIncident(id, formData);
-        return result;
-      } catch (err: unknown) {
-        const message =
-          err instanceof Error ? err.message : "Failed to update incident";
-        setError(message);
-        throw err;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    []
-  );
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: IncidentFormData }) =>
+      updateIncident(id, data),
+    onSuccess: invalidate,
+  });
 
-  const remove = useCallback(async (id: string) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      await deleteIncident(id);
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to delete incident";
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const removeMutation = useMutation({
+    mutationFn: (id: string) => deleteIncident(id),
+    onSuccess: invalidate,
+  });
 
-  return { create, update, remove, isLoading, error };
+  return {
+    create: (data: IncidentFormData) => createMutation.mutateAsync(data),
+    update: (id: string, data: IncidentFormData) =>
+      updateMutation.mutateAsync({ id, data }),
+    remove: (id: string) => removeMutation.mutateAsync(id),
+    isLoading:
+      createMutation.isPending ||
+      updateMutation.isPending ||
+      removeMutation.isPending,
+    error:
+      createMutation.error?.message ??
+      updateMutation.error?.message ??
+      removeMutation.error?.message ??
+      null,
+  };
 }
