@@ -4,19 +4,12 @@ import { mockIncidents } from "@/lib/mock/incidents";
 import { mockKbArticles } from "@/lib/mock/kb";
 import { mockRules } from "@/lib/mock/rules";
 import { QuickSearch } from "@/components/dashboard/QuickSearch";
+import { ChartCards } from "@/components/dashboard/ChartCards";
 import { StatsCards } from "@/components/dashboard/StatsCards";
 import { RecentIncidentsList } from "@/components/dashboard/RecentIncidentsList";
 import { RecentArticlesList } from "@/components/dashboard/RecentArticlesList";
 
 function computeStats() {
-  const openIncidents = mockIncidents.filter(
-    (i) => i.status === "open" || i.status === "investigating"
-  ).length;
-
-  const criticalIncidents = mockIncidents.filter(
-    (i) => i.severity === "critical" && i.status !== "closed"
-  ).length;
-
   const totalArticles = mockKbArticles.length;
 
   const publishedArticles = mockKbArticles.filter(
@@ -30,8 +23,6 @@ function computeStats() {
   ).length;
 
   return {
-    openIncidents,
-    criticalIncidents,
     avgResolution: "4.2 hrs",
     totalArticles,
     publishedArticles,
@@ -43,7 +34,6 @@ function computeStats() {
 export default function DashboardPage() {
   const stats = computeStats();
 
-  // Sort incidents by created_at descending, take most recent 6
   const recentIncidents = [...mockIncidents]
     .sort(
       (a, b) =>
@@ -51,7 +41,6 @@ export default function DashboardPage() {
     )
     .slice(0, 6);
 
-  // Sort articles by updated_at descending, take most recent 5
   const recentArticles = [...mockKbArticles]
     .sort(
       (a, b) =>
@@ -74,15 +63,19 @@ export default function DashboardPage() {
       {/* Quick search */}
       <QuickSearch />
 
-      {/* Stats cards */}
-      <StatsCards stats={stats} />
+      {/* Chart cards */}
+      <ChartCards incidents={mockIncidents} />
 
-      {/* Two-column layout: incidents (wider) + articles */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+      {/* Stats + Activity: unified 3-column grid */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {/* Stats row — one card per column */}
+        <StatsCards stats={stats} />
+
+        {/* Activity row — incidents span 2, KB articles span 1 */}
+        <div className="sm:col-span-2">
           <RecentIncidentsList incidents={recentIncidents} />
         </div>
-        <div className="lg:col-span-1">
+        <div className="sm:col-span-1">
           <RecentArticlesList articles={recentArticles} />
         </div>
       </div>

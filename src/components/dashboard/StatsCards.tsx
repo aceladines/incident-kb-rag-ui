@@ -1,14 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { AlertTriangle, Clock, BookOpen, ShieldCheck, type LucideIcon } from "lucide-react";
+import { Clock, BookOpen, ShieldCheck, type LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { staggerContainer, staggerItem } from "@/lib/animations";
 
 interface DashboardStats {
-  openIncidents: number;
-  criticalIncidents: number;
   avgResolution: string;
   totalArticles: number;
   publishedArticles: number;
@@ -30,13 +27,6 @@ interface StatCardConfig {
 
 function buildCards(stats: DashboardStats): StatCardConfig[] {
   return [
-    {
-      label: "Open Incidents",
-      value: stats.openIncidents,
-      subtitle: `${stats.criticalIncidents} critical`,
-      icon: AlertTriangle,
-      iconClassName: "border-red-500 text-red-500",
-    },
     {
       label: "Avg Resolution",
       value: stats.avgResolution,
@@ -65,18 +55,21 @@ export function StatsCards({ stats }: StatsCardsProps) {
   const cards = buildCards(stats);
 
   return (
-    <motion.div
-      variants={staggerContainer}
-      initial="hidden"
-      animate="visible"
-      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
-    >
-      {cards.map((card) => {
+    <>
+      {cards.map((card, idx) => {
         const Icon = card.icon;
         return (
-          <motion.div key={card.label} variants={staggerItem}>
+          <motion.div
+            key={card.label}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              delay: idx * 0.04 + 0.06,
+              duration: 0.25,
+              ease: [0.25, 0.46, 0.45, 0.94],
+            }}
+          >
             <Card className="relative overflow-hidden transition-colors duration-200 hover:border-primary/25">
-              {/* Red accent line */}
               <div className="absolute left-4 right-4 top-0 h-[2px] rounded-b-sm bg-gradient-to-r from-primary to-transparent" />
               <CardContent className="flex items-start justify-between pt-5">
                 <div className="space-y-1">
@@ -103,6 +96,6 @@ export function StatsCards({ stats }: StatsCardsProps) {
           </motion.div>
         );
       })}
-    </motion.div>
+    </>
   );
 }
