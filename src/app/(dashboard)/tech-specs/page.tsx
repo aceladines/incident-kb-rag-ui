@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { Pagination } from "@/components/ui/Pagination";
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Plus, FileCode, FileText, Loader2 } from "lucide-react";
@@ -22,9 +24,11 @@ export default function TechSpecsListPage() {
     category: "all",
     status: "all",
   });
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
   const apiFilters = useMemo<TechSpecFilters>(() => {
-    const f: TechSpecFilters = {};
+    const f: TechSpecFilters = { page, page_size: pageSize };
 
     if (activeTab === "published") {
       f.status = ["published"];
@@ -45,7 +49,7 @@ export default function TechSpecsListPage() {
     }
 
     return f;
-  }, [activeTab, filters]);
+  }, [activeTab, filters, page, pageSize]);
 
   const { data, isLoading, error, refetch } = useTechSpecs(apiFilters);
   const specs = data?.items ?? [];
@@ -74,7 +78,7 @@ export default function TechSpecsListPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); setPage(1); }}>
         <TabsList>
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="published">Published</TabsTrigger>
@@ -83,7 +87,7 @@ export default function TechSpecsListPage() {
 
         {/* Filters */}
         <div className="mt-4">
-          <SpecFilters filters={filters} onFiltersChange={setFilters} />
+          <SpecFilters filters={filters} onFiltersChange={(f) => { setFilters(f); setPage(1); }} />
         </div>
 
         {/* Content */}
@@ -100,18 +104,29 @@ export default function TechSpecsListPage() {
               </Button>
             </div>
           ) : specs.length > 0 ? (
-            <motion.div
-              variants={staggerContainer}
-              initial="hidden"
-              animate="visible"
-              className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
-            >
-              {specs.map((spec) => (
-                <motion.div key={spec.id} variants={staggerItem}>
-                  <SpecCard spec={spec} />
-                </motion.div>
-              ))}
-            </motion.div>
+            <>
+              <motion.div
+                variants={staggerContainer}
+                initial="hidden"
+                animate="visible"
+                className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+              >
+                {specs.map((spec) => (
+                  <motion.div key={spec.id} variants={staggerItem}>
+                    <SpecCard spec={spec} />
+                  </motion.div>
+                ))}
+              </motion.div>
+              <div className="mt-6">
+                <Pagination
+                  page={page}
+                  pageSize={pageSize}
+                  total={data?.total ?? 0}
+                  onPageChange={setPage}
+                  onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+                />
+              </div>
+            </>
           ) : (
             <motion.div
               initial={{ opacity: 0 }}
