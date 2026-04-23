@@ -4,11 +4,11 @@ import { use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IncidentForm } from "@/components/incidents/IncidentForm";
 import { slideUp, fadeIn } from "@/lib/animations";
-import { mockIncidents } from "@/lib/mock/incidents";
+import { useIncident, useIncidentMutations } from "@/hooks/use-incidents";
 import { toast } from "sonner";
 import type { IncidentFormData } from "@/lib/types";
 
@@ -20,9 +20,18 @@ export default function EditIncidentPage({
   const { id } = use(params);
   const router = useRouter();
 
-  const incident = mockIncidents.find((inc) => inc.id === id);
+  const { data: incident, isLoading, error } = useIncident(id);
+  const { update } = useIncidentMutations();
 
-  if (!incident) {
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error || !incident) {
     return (
       <motion.div
         variants={fadeIn}
@@ -43,12 +52,17 @@ export default function EditIncidentPage({
   }
 
   const handleSubmit = async (data: IncidentFormData) => {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    toast.success("Incident updated", {
-      description: `"${data.title}" has been updated successfully.`,
-    });
-    router.push(`/incidents/${id}`);
+    try {
+      await update(id, data);
+      toast.success("Incident updated", {
+        description: `"${data.title}" has been updated successfully.`,
+      });
+      router.push(`/incidents/${id}`);
+    } catch {
+      toast.error("Failed to update incident", {
+        description: "Please try again.",
+      });
+    }
   };
 
   const defaultValues: Partial<IncidentFormData> = {

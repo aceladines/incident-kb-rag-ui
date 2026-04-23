@@ -3,44 +3,22 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Plus, AlertTriangle } from "lucide-react";
+import { Plus, AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IncidentTable } from "@/components/incidents/IncidentTable";
 import { IncidentFilters } from "@/components/incidents/IncidentFilters";
-import { mockIncidents } from "@/lib/mock/incidents";
+import { useIncidents } from "@/hooks/use-incidents";
 import { slideUp } from "@/lib/animations";
 import type { IncidentFilters as IncidentFiltersType } from "@/lib/types";
 
 export default function IncidentsPage() {
   const [filters, setFilters] = useState<IncidentFiltersType>({});
 
-  const filteredIncidents = useMemo(() => {
-    let result = [...mockIncidents];
+  const stableFilters = useMemo(() => ({ ...filters }), [filters]);
+  const { data, isLoading, error, refetch } = useIncidents(stableFilters);
 
-    if (filters.search) {
-      const q = filters.search.toLowerCase();
-      result = result.filter(
-        (inc) =>
-          inc.title.toLowerCase().includes(q) ||
-          inc.description.toLowerCase().includes(q),
-      );
-    }
-
-    if (filters.status && filters.status.length > 0) {
-      result = result.filter((inc) => filters.status!.includes(inc.status));
-    }
-
-    if (filters.severity && filters.severity.length > 0) {
-      result = result.filter((inc) => filters.severity!.includes(inc.severity));
-    }
-
-    // Sort by created_at descending (most recent first)
-    result.sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    );
-
-    return result;
-  }, [filters]);
+  const incidents = data?.items ?? [];
+  const total = data?.total ?? 0;
 
   return (
     <motion.div
@@ -58,7 +36,7 @@ export default function IncidentsPage() {
           <div>
             <h1 className="text-xl font-semibold tracking-tight text-foreground">Incidents</h1>
             <p className="text-sm text-muted-foreground">
-              {filteredIncidents.length} incident{filteredIncidents.length !== 1 ? "s" : ""}
+              {total} incident{total !== 1 ? "s" : ""}
             </p>
           </div>
         </div>
@@ -71,8 +49,25 @@ export default function IncidentsPage() {
       {/* Filters */}
       <IncidentFilters filters={filters} onFiltersChange={setFilters} />
 
+      {/* Loading state */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      )}
+
+      {/* Error state */}
+      {error && !isLoading && (
+        <div className="flex flex-col items-center justify-center gap-3 py-20">
+          <p className="text-sm text-destructive">{error}</p>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            Retry
+          </Button>
+        </div>
+      )}
+
       {/* Table */}
-      <IncidentTable incidents={filteredIncidents} />
+      {!isLoading && !error && <IncidentTable incidents={incidents} />}
     </motion.div>
   );
 }

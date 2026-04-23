@@ -7,19 +7,26 @@ import { ArrowLeft, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IncidentForm } from "@/components/incidents/IncidentForm";
 import { slideUp } from "@/lib/animations";
+import { useIncidentMutations } from "@/hooks/use-incidents";
 import { toast } from "sonner";
 import type { IncidentFormData } from "@/lib/types";
 
 export default function NewIncidentPage() {
   const router = useRouter();
+  const { create } = useIncidentMutations();
 
   const handleSubmit = async (data: IncidentFormData) => {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    toast.success("Incident created", {
-      description: `"${data.title}" has been logged successfully.`,
-    });
-    router.push("/incidents");
+    try {
+      await create(data);
+      toast.success("Incident created", {
+        description: `"${data.title}" has been logged successfully.`,
+      });
+      router.push("/incidents");
+    } catch {
+      toast.error("Failed to create incident", {
+        description: "Please try again.",
+      });
+    }
   };
 
   return (

@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   Server,
   Users,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,9 +36,9 @@ import { SeverityBadge } from "@/components/incidents/SeverityBadge";
 import { StatusBadge } from "@/components/incidents/StatusBadge";
 import { slideUp, fadeIn } from "@/lib/animations";
 import { formatDate } from "@/lib/utils";
-import { mockIncidents } from "@/lib/mock/incidents";
 import { mockServices } from "@/lib/mock/services";
 import { mockTeams } from "@/lib/mock/teams";
+import { useIncident, useIncidentMutations } from "@/hooks/use-incidents";
 import { toast } from "sonner";
 
 function getServiceName(id: string): string {
@@ -57,9 +58,18 @@ export default function IncidentDetailPage({
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const incident = mockIncidents.find((inc) => inc.id === id);
+  const { data: incident, isLoading, error } = useIncident(id);
+  const { remove } = useIncidentMutations();
 
-  if (!incident) {
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error || !incident) {
     return (
       <motion.div
         variants={fadeIn}
@@ -81,12 +91,18 @@ export default function IncidentDetailPage({
 
   const handleDelete = async () => {
     setIsDeleting(true);
-    // Simulate deletion delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    toast.success("Incident deleted", {
-      description: `"${incident.title}" has been removed.`,
-    });
-    router.push("/incidents");
+    try {
+      await remove(id);
+      toast.success("Incident deleted", {
+        description: `"${incident.title}" has been removed.`,
+      });
+      router.push("/incidents");
+    } catch {
+      toast.error("Failed to delete incident", {
+        description: "Please try again.",
+      });
+      setIsDeleting(false);
+    }
   };
 
   return (
