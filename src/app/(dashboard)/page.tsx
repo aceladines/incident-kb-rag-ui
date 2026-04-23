@@ -1,47 +1,54 @@
 "use client";
 
-import { mockIncidents } from "@/lib/mock/incidents";
-import { mockKbArticles } from "@/lib/mock/kb";
+import { Loader2 } from "lucide-react";
 import { mockRules } from "@/lib/mock/rules";
+import { useIncidents } from "@/hooks/use-incidents";
+import { useKbArticles } from "@/hooks/use-kb";
 import { QuickSearch } from "@/components/dashboard/QuickSearch";
 import { ChartCards } from "@/components/dashboard/ChartCards";
 import { StatsCards } from "@/components/dashboard/StatsCards";
 import { RecentIncidentsList } from "@/components/dashboard/RecentIncidentsList";
 import { RecentArticlesList } from "@/components/dashboard/RecentArticlesList";
 
-function computeStats() {
-  const totalArticles = mockKbArticles.length;
-
-  const publishedArticles = mockKbArticles.filter(
-    (a) => a.status === "published"
-  ).length;
-
-  const enabledRules = mockRules.filter((r) => r.is_enabled);
-  const activeRules = enabledRules.length;
-  const guardrailRules = enabledRules.filter(
-    (r) => r.category === "agent_guardrail"
-  ).length;
-
-  return {
-    avgResolution: "4.2 hrs",
-    totalArticles,
-    publishedArticles,
-    activeRules,
-    guardrailRules,
-  };
-}
+const INCIDENTS_FILTERS = { page_size: 100 } as const;
+const KB_FILTERS = { page_size: 100 } as const;
 
 export default function DashboardPage() {
-  const stats = computeStats();
+  const { data: incidentData, isLoading: incidentsLoading } =
+    useIncidents(INCIDENTS_FILTERS);
+  const { data: kbData, isLoading: kbLoading } = useKbArticles(KB_FILTERS);
 
-  const recentIncidents = [...mockIncidents]
+  const isLoading = incidentsLoading || kbLoading;
+  const incidents = incidentData?.items ?? [];
+  const kbArticles = kbData?.items ?? [];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  const enabledRules = mockRules.filter((r) => r.is_enabled);
+  const stats = {
+    avgResolution: "4.2 hrs",
+    totalArticles: kbData?.total ?? 0,
+    publishedArticles: kbArticles.filter((a) => a.status === "published")
+      .length,
+    activeRules: enabledRules.length,
+    guardrailRules: enabledRules.filter((r) => r.category === "agent_guardrail")
+      .length,
+  };
+
+  const recentIncidents = [...incidents]
     .sort(
       (a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     )
     .slice(0, 6);
 
-  const recentArticles = [...mockKbArticles]
+  const recentArticles = [...kbArticles]
     .sort(
       (a, b) =>
         new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
@@ -64,7 +71,7 @@ export default function DashboardPage() {
       <QuickSearch />
 
       {/* Chart cards */}
-      <ChartCards incidents={mockIncidents} />
+      <ChartCards incidents={incidents} />
 
       {/* Stats + Activity: unified 3-column grid */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
