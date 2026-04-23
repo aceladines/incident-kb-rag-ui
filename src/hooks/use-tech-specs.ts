@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type {
   TechSpec,
   TechSpecFilters,
@@ -16,110 +16,66 @@ import {
 } from "@/lib/api/tech-specs";
 
 export function useTechSpecs(filters?: TechSpecFilters) {
-  const [data, setData] = useState<PaginatedResponse<TechSpec> | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const query = useQuery<PaginatedResponse<TechSpec>>({
+    queryKey: ["tech-specs", filters],
+    queryFn: () => getTechSpecs(filters),
+  });
 
-  const fetchSpecs = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const result = await getTechSpecs(filters);
-      setData(result);
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to fetch tech specs";
-      setError(message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [filters]);
-
-  useEffect(() => {
-    fetchSpecs();
-  }, [fetchSpecs]);
-
-  return { data, isLoading, error, refetch: fetchSpecs };
+  return {
+    data: query.data ?? null,
+    isLoading: query.isLoading,
+    error: query.error ? (query.error as Error).message ?? "Failed to fetch tech specs" : null,
+    refetch: query.refetch,
+  };
 }
 
 export function useTechSpec(id: string) {
-  const [data, setData] = useState<TechSpec | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const query = useQuery<TechSpec>({
+    queryKey: ["tech-specs", id],
+    queryFn: () => getTechSpec(id),
+  });
 
-  useEffect(() => {
-    const fetch = async () => {
-      setIsLoading(true);
-      try {
-        const result = await getTechSpec(id);
-        setData(result);
-      } catch (err: unknown) {
-        const message =
-          err instanceof Error ? err.message : "Failed to fetch tech spec";
-        setError(message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetch();
-  }, [id]);
-
-  return { data, isLoading, error };
+  return {
+    data: query.data ?? null,
+    isLoading: query.isLoading,
+    error: query.error ? (query.error as Error).message ?? "Failed to fetch tech spec" : null,
+  };
 }
 
 export function useTechSpecMutations() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: ["tech-specs"] });
 
-  const create = useCallback(async (formData: TechSpecFormData) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const result = await createTechSpec(formData);
-      return result;
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to create tech spec";
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const createMutation = useMutation({
+    mutationFn: (data: TechSpecFormData) => createTechSpec(data),
+    onSuccess: invalidate,
+  });
 
-  const update = useCallback(
-    async (id: string, formData: TechSpecFormData) => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const result = await updateTechSpec(id, formData);
-        return result;
-      } catch (err: unknown) {
-        const message =
-          err instanceof Error ? err.message : "Failed to update tech spec";
-        setError(message);
-        throw err;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    []
-  );
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: TechSpecFormData }) =>
+      updateTechSpec(id, data),
+    onSuccess: invalidate,
+  });
 
-  const remove = useCallback(async (id: string) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      await deleteTechSpec(id);
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to delete tech spec";
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const removeMutation = useMutation({
+    mutationFn: (id: string) => deleteTechSpec(id),
+    onSuccess: invalidate,
+  });
 
-  return { create, update, remove, isLoading, error };
+  return {
+    create: (data: TechSpecFormData) => createMutation.mutateAsync(data),
+    update: (id: string, data: TechSpecFormData) =>
+      updateMutation.mutateAsync({ id, data }),
+    remove: (id: string) => removeMutation.mutateAsync(id),
+    isLoading:
+      createMutation.isPending ||
+      updateMutation.isPending ||
+      removeMutation.isPending,
+    error:
+      createMutation.error?.message ??
+      updateMutation.error?.message ??
+      removeMutation.error?.message ??
+      null,
+  };
 }

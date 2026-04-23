@@ -95,7 +95,7 @@ export default function TechSpecsListPage() {
           ) : error ? (
             <div className="mt-12 flex flex-col items-center justify-center py-16 text-center">
               <p className="text-sm text-destructive">{error}</p>
-              <Button className="mt-4" variant="outline" onClick={refetch}>
+              <Button className="mt-4" variant="outline" onClick={() => refetch()}>
                 Retry
               </Button>
             </div>
