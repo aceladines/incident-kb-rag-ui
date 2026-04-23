@@ -8,17 +8,21 @@ import { Button } from "@/components/ui/button";
 import { ArticleForm } from "@/components/kb/ArticleForm";
 import { slideUp } from "@/lib/animations";
 import { toast } from "sonner";
+import { useKbArticleMutations } from "@/hooks/use-kb";
 import type { KbArticleFormData } from "@/lib/types";
 
 export default function NewKbArticlePage() {
   const router = useRouter();
+  const { create } = useKbArticleMutations();
 
   const handleSubmit = async (data: KbArticleFormData) => {
-    // Mock create — in production this would call the API
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    console.log("Creating article:", data);
-    toast.success("Article created successfully");
-    router.push("/kb");
+    try {
+      await create(data);
+      toast.success("Article created successfully");
+      router.push("/kb");
+    } catch {
+      toast.error("Failed to create article. Please try again.");
+    }
   };
 
   return (
