@@ -14,6 +14,8 @@ import {
 import { staggerContainer, staggerItem, slideUp } from "@/lib/animations";
 import { useKbArticles } from "@/hooks/use-kb";
 import type { KbArticleCategory, KbArticleFilters, KbArticleStatus } from "@/lib/types";
+import { Pagination } from "@/components/ui/Pagination";
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 
 export default function KbListPage() {
   const [activeTab, setActiveTab] = useState("all");
@@ -22,18 +24,18 @@ export default function KbListPage() {
     category: "all",
     status: "all",
   });
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
   const apiFilters = useMemo<KbArticleFilters>(() => {
-    const f: KbArticleFilters = {};
+    const f: KbArticleFilters = { page, page_size: pageSize };
 
-    // Tab-driven status filter
     if (activeTab === "published") {
       f.status = ["published"];
     } else if (activeTab === "drafts") {
       f.status = ["draft"];
     }
 
-    // Dropdown status filter overrides tab if set
     if (filters.status !== "all") {
       f.status = [filters.status as KbArticleStatus];
     }
@@ -47,7 +49,7 @@ export default function KbListPage() {
     }
 
     return f;
-  }, [activeTab, filters]);
+  }, [activeTab, filters, page, pageSize]);
 
   const { data, isLoading, error, refetch } = useKbArticles(apiFilters);
   const articles = data?.items ?? [];
@@ -76,7 +78,7 @@ export default function KbListPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); setPage(1); }}>
         <TabsList>
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="published">Published</TabsTrigger>
@@ -85,7 +87,7 @@ export default function KbListPage() {
 
         {/* Filters */}
         <div className="mt-4">
-          <ArticleFilters filters={filters} onFiltersChange={setFilters} />
+          <ArticleFilters filters={filters} onFiltersChange={(f) => { setFilters(f); setPage(1); }} />
         </div>
 
         {/* Content for all tabs - rendered outside TabsContent to avoid unmount */}
@@ -107,18 +109,29 @@ export default function KbListPage() {
               </Button>
             </div>
           ) : articles.length > 0 ? (
-            <motion.div
-              variants={staggerContainer}
-              initial="hidden"
-              animate="visible"
-              className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
-            >
-              {articles.map((article) => (
-                <motion.div key={article.id} variants={staggerItem}>
-                  <ArticleCard article={article} />
-                </motion.div>
-              ))}
-            </motion.div>
+            <>
+              <motion.div
+                variants={staggerContainer}
+                initial="hidden"
+                animate="visible"
+                className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+              >
+                {articles.map((article) => (
+                  <motion.div key={article.id} variants={staggerItem}>
+                    <ArticleCard article={article} />
+                  </motion.div>
+                ))}
+              </motion.div>
+              <div className="mt-6">
+                <Pagination
+                  page={page}
+                  pageSize={pageSize}
+                  total={data?.total ?? 0}
+                  onPageChange={setPage}
+                  onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+                />
+              </div>
+            </>
           ) : (
             <motion.div
               initial={{ opacity: 0 }}
