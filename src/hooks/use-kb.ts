@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type {
   KbArticle,
   KbArticleFilters,
@@ -16,110 +16,66 @@ import {
 } from "@/lib/api/kb";
 
 export function useKbArticles(filters?: KbArticleFilters) {
-  const [data, setData] = useState<PaginatedResponse<KbArticle> | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const query = useQuery<PaginatedResponse<KbArticle>>({
+    queryKey: ["kb", filters],
+    queryFn: () => getKbArticles(filters),
+  });
 
-  const fetchArticles = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const result = await getKbArticles(filters);
-      setData(result);
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to fetch KB articles";
-      setError(message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [filters]);
-
-  useEffect(() => {
-    fetchArticles();
-  }, [fetchArticles]);
-
-  return { data, isLoading, error, refetch: fetchArticles };
+  return {
+    data: query.data ?? null,
+    isLoading: query.isLoading,
+    error: query.error ? (query.error as Error).message ?? "Failed to fetch KB articles" : null,
+    refetch: query.refetch,
+  };
 }
 
 export function useKbArticle(id: string) {
-  const [data, setData] = useState<KbArticle | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const query = useQuery<KbArticle>({
+    queryKey: ["kb", id],
+    queryFn: () => getKbArticle(id),
+  });
 
-  useEffect(() => {
-    const fetch = async () => {
-      setIsLoading(true);
-      try {
-        const result = await getKbArticle(id);
-        setData(result);
-      } catch (err: unknown) {
-        const message =
-          err instanceof Error ? err.message : "Failed to fetch KB article";
-        setError(message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetch();
-  }, [id]);
-
-  return { data, isLoading, error };
+  return {
+    data: query.data ?? null,
+    isLoading: query.isLoading,
+    error: query.error ? (query.error as Error).message ?? "Failed to fetch KB article" : null,
+  };
 }
 
 export function useKbArticleMutations() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: ["kb"] });
 
-  const create = useCallback(async (formData: KbArticleFormData) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const result = await createKbArticle(formData);
-      return result;
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to create KB article";
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const createMutation = useMutation({
+    mutationFn: (data: KbArticleFormData) => createKbArticle(data),
+    onSuccess: invalidate,
+  });
 
-  const update = useCallback(
-    async (id: string, formData: KbArticleFormData) => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const result = await updateKbArticle(id, formData);
-        return result;
-      } catch (err: unknown) {
-        const message =
-          err instanceof Error ? err.message : "Failed to update KB article";
-        setError(message);
-        throw err;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    []
-  );
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: KbArticleFormData }) =>
+      updateKbArticle(id, data),
+    onSuccess: invalidate,
+  });
 
-  const remove = useCallback(async (id: string) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      await deleteKbArticle(id);
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to delete KB article";
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const removeMutation = useMutation({
+    mutationFn: (id: string) => deleteKbArticle(id),
+    onSuccess: invalidate,
+  });
 
-  return { create, update, remove, isLoading, error };
+  return {
+    create: (data: KbArticleFormData) => createMutation.mutateAsync(data),
+    update: (id: string, data: KbArticleFormData) =>
+      updateMutation.mutateAsync({ id, data }),
+    remove: (id: string) => removeMutation.mutateAsync(id),
+    isLoading:
+      createMutation.isPending ||
+      updateMutation.isPending ||
+      removeMutation.isPending,
+    error:
+      createMutation.error?.message ??
+      updateMutation.error?.message ??
+      removeMutation.error?.message ??
+      null,
+  };
 }
