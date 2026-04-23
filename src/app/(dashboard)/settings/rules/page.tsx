@@ -8,19 +8,24 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { RuleCard } from "@/components/rules/RuleCard";
+import { Pagination } from "@/components/ui/Pagination";
 import { useRules, useRuleMutations } from "@/hooks/use-rules";
 import type { RuleCategory, RuleFilters } from "@/lib/types";
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 
 type FilterTab = "all" | RuleCategory;
 
 export default function RulesPage() {
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
   const filters = useMemo<RuleFilters | undefined>(() => {
-    if (activeTab === "rag_behavior") return { category: ["rag_behavior"] };
-    if (activeTab === "agent_guardrail") return { category: ["agent_guardrail"] };
-    return undefined;
-  }, [activeTab]);
+    const f: RuleFilters = { page, page_size: pageSize };
+    if (activeTab === "rag_behavior") f.category = ["rag_behavior"];
+    if (activeTab === "agent_guardrail") f.category = ["agent_guardrail"];
+    return f;
+  }, [activeTab, page, pageSize]);
 
   const { data, isLoading, error, refetch } = useRules(filters);
   const { toggle } = useRuleMutations();
@@ -79,7 +84,7 @@ export default function RulesPage() {
       {/* Tabs */}
       <Tabs
         value={activeTab}
-        onValueChange={(val) => { if (val) setActiveTab(val as FilterTab); }}
+        onValueChange={(val) => { if (val) { setActiveTab(val as FilterTab); setPage(1); } }}
       >
         <TabsList>
           <TabsTrigger value="all">
@@ -109,9 +114,20 @@ export default function RulesPage() {
                 </p>
               </div>
             ) : (
-              rules.map((rule) => (
-                <RuleCard key={rule.id} rule={rule} onToggle={handleToggle} />
-              ))
+              <>
+                {rules.map((rule) => (
+                  <RuleCard key={rule.id} rule={rule} onToggle={handleToggle} />
+                ))}
+                <div className="mt-6">
+                  <Pagination
+                    page={page}
+                    pageSize={pageSize}
+                    total={data?.total ?? 0}
+                    onPageChange={setPage}
+                    onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+                  />
+                </div>
+              </>
             )}
           </motion.div>
         </TabsContent>
