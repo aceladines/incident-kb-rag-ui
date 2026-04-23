@@ -32,9 +32,6 @@ export default function RulesPage() {
 
   const rules = data?.items ?? [];
 
-  const ragCount = rules.filter((r) => r.category === "rag_behavior").length;
-  const guardrailCount = rules.filter((r) => r.category === "agent_guardrail").length;
-
   const handleToggle = async (id: string, enabled: boolean) => {
     try {
       await toggle(id, enabled);
@@ -87,15 +84,9 @@ export default function RulesPage() {
         onValueChange={(val) => { if (val) { setActiveTab(val as FilterTab); setPage(1); } }}
       >
         <TabsList>
-          <TabsTrigger value="all">
-            All ({data?.total ?? 0})
-          </TabsTrigger>
-          <TabsTrigger value="rag_behavior">
-            RAG Behavior ({ragCount})
-          </TabsTrigger>
-          <TabsTrigger value="agent_guardrail">
-            Agent Guardrail ({guardrailCount})
-          </TabsTrigger>
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="rag_behavior">RAG Behavior</TabsTrigger>
+          <TabsTrigger value="agent_guardrail">Agent Guardrail</TabsTrigger>
         </TabsList>
 
         <TabsContent value={activeTab}>
