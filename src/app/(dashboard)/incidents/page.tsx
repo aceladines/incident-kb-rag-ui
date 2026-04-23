@@ -7,18 +7,35 @@ import { Plus, AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IncidentTable } from "@/components/incidents/IncidentTable";
 import { IncidentFilters } from "@/components/incidents/IncidentFilters";
+import { Pagination } from "@/components/ui/Pagination";
 import { useIncidents } from "@/hooks/use-incidents";
 import { slideUp } from "@/lib/animations";
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import type { IncidentFilters as IncidentFiltersType } from "@/lib/types";
 
 export default function IncidentsPage() {
   const [filters, setFilters] = useState<IncidentFiltersType>({});
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
-  const stableFilters = useMemo(() => ({ ...filters }), [filters]);
+  const stableFilters = useMemo(
+    () => ({ ...filters, page, page_size: pageSize }),
+    [filters, page, pageSize],
+  );
   const { data, isLoading, error, refetch } = useIncidents(stableFilters);
 
   const incidents = data?.items ?? [];
   const total = data?.total ?? 0;
+
+  const handleFiltersChange = (newFilters: IncidentFiltersType) => {
+    setFilters(newFilters);
+    setPage(1);
+  };
+
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setPage(1);
+  };
 
   return (
     <motion.div
@@ -47,7 +64,7 @@ export default function IncidentsPage() {
       </div>
 
       {/* Filters */}
-      <IncidentFilters filters={filters} onFiltersChange={setFilters} />
+      <IncidentFilters filters={filters} onFiltersChange={handleFiltersChange} />
 
       {/* Loading state */}
       {isLoading && (
@@ -66,8 +83,19 @@ export default function IncidentsPage() {
         </div>
       )}
 
-      {/* Table */}
-      {!isLoading && !error && <IncidentTable incidents={incidents} />}
+      {/* Table + Pagination */}
+      {!isLoading && !error && (
+        <>
+          <IncidentTable incidents={incidents} />
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={setPage}
+            onPageSizeChange={handlePageSizeChange}
+          />
+        </>
+      )}
     </motion.div>
   );
 }
