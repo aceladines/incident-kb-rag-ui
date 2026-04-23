@@ -8,115 +8,34 @@ import { SourceTypeToggle } from "@/components/ask/SourceTypeToggle";
 import { QueryInput } from "@/components/ask/QueryInput";
 import { AnswerPanel } from "@/components/ask/AnswerPanel";
 import { SourceCard } from "@/components/ask/SourceCard";
-import type { AskResponse, SourceReference } from "@/lib/types";
+import { useAsk } from "@/hooks/use-ask";
+import type { AskQuery } from "@/lib/types";
 
-type SourceType = "all" | "incident" | "kb_article";
-
-const MOCK_RESPONSE: AskResponse = {
-  answer: `## Authentication Service Issues
-
-Based on recent incidents and our knowledge base, here's what we know:
-
-### Recent Incidents
-- **Authentication service returning 503** during peak hours was resolved by scaling up the connection pool.
-- The root cause was identified as connection pool exhaustion under high load.
-
-### Recommended Steps
-1. Check the current connection pool metrics in Grafana
-2. Review the [Database Failover Procedure](/kb/kb-001) if the issue persists
-3. Escalate to Platform Engineering if metrics show abnormal patterns
-
-> **Note:** All fixes from incidents older than 6 months should be verified against current infrastructure.`,
-  sources: [
-    {
-      type: "incident" as const,
-      data: {
-        id: "inc-001",
-        title: "Authentication service returning 503 during peak hours",
-        description:
-          "The auth service started returning 503 errors at approximately 08:15 UTC. Error rates climbed from baseline 0.01% to 12.3% within 15 minutes.",
-        severity: "critical" as const,
-        status: "resolved" as const,
-        impacted_services: ["svc-001"],
-        responsible_team: "team-001",
-        created_by: "ops@company.com",
-        created_at: "2026-03-15T08:30:00Z",
-        updated_at: "2026-03-15T14:00:00Z",
-        resolved_at: "2026-03-15T14:00:00Z",
-        fix_details:
-          "Increased connection pool size from 50 to 200 and enabled connection recycling.",
-      },
-    },
-    {
-      type: "kb_article" as const,
-      data: {
-        id: "kb-002",
-        title: "Debugging Authentication Failures",
-        content: "# Debugging Auth Failures\n\nStep-by-step guide...",
-        summary:
-          "Step-by-step guide for troubleshooting authentication failures across SSO providers, token validation, and session management.",
-        category: "troubleshooting" as const,
-        tags: ["auth", "debugging", "sso"],
-        related_services: ["svc-001"],
-        status: "published" as const,
-        created_by: "admin@company.com",
-        created_at: "2026-02-01T10:00:00Z",
-        updated_at: "2026-03-10T14:00:00Z",
-        published_at: "2026-02-02T09:00:00Z",
-      },
-    },
-    {
-      type: "kb_article" as const,
-      data: {
-        id: "kb-003",
-        title: "Connection Pool Tuning Guide",
-        content: "# Connection Pool Tuning\n\nConfiguration reference...",
-        summary:
-          "Configuration reference for PostgreSQL connection pooling with PgBouncer, including recommended pool sizes per service tier.",
-        category: "configuration" as const,
-        tags: ["database", "pgbouncer", "performance"],
-        related_services: ["svc-005"],
-        status: "published" as const,
-        created_by: "admin@company.com",
-        created_at: "2026-01-20T10:00:00Z",
-        updated_at: "2026-02-15T11:00:00Z",
-        published_at: "2026-01-21T09:00:00Z",
-      },
-    },
-  ],
-};
+type SourceType = "all" | "incident" | "kb_article" | "tech_spec";
 
 export default function AskPageClient() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") ?? "";
 
   const [sourceType, setSourceType] = useState<SourceType>("all");
-  const [isLoading, setIsLoading] = useState(false);
-  const [response, setResponse] = useState<AskResponse | null>(null);
   const [hasQueried, setHasQueried] = useState(false);
 
+  const { response, isLoading, error, ask } = useAsk();
+
   const handleQuery = useCallback(
-    (query: string) => {
-      setIsLoading(true);
+    async (query: string) => {
       setHasQueried(true);
-      setResponse(null);
-
-      setTimeout(() => {
-        let filteredSources: SourceReference[] = MOCK_RESPONSE.sources;
-        if (sourceType === "incident") {
-          filteredSources = MOCK_RESPONSE.sources.filter((s) => s.type === "incident");
-        } else if (sourceType === "kb_article") {
-          filteredSources = MOCK_RESPONSE.sources.filter((s) => s.type === "kb_article");
-        }
-
-        setResponse({
-          answer: MOCK_RESPONSE.answer,
-          sources: filteredSources,
-        });
-        setIsLoading(false);
-      }, 1800);
+      const askQuery: AskQuery = { query };
+      if (sourceType !== "all") {
+        askQuery.source_types = [sourceType];
+      }
+      try {
+        await ask(askQuery);
+      } catch {
+        // error is captured in the hook
+      }
     },
-    [sourceType]
+    [sourceType, ask]
   );
 
   useEffect(() => {
@@ -187,6 +106,12 @@ export default function AskPageClient() {
         <QueryInput onSubmit={handleQuery} isLoading={isLoading} initialQuery={initialQuery} />
       </div>
 
+      {error && (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+          <p className="text-sm text-destructive">{error}</p>
+        </div>
+      )}
+
       <AnswerPanel answer={response?.answer ?? ""} isLoading={isLoading} />
 
       {!isLoading && response && response.sources.length > 0 && (
@@ -202,7 +127,7 @@ export default function AskPageClient() {
               Sources ({response.sources.length})
             </h2>
           </div>
-          <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
             {response.sources.map((source, idx) => (
               <SourceCard key={source.data.id} source={source} index={idx} />
             ))}
