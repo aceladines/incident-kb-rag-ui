@@ -33,7 +33,6 @@ export default function RulesPage() {
   const handleToggle = async (id: string, enabled: boolean) => {
     try {
       await toggle(id, enabled);
-      refetch();
     } catch {
       toast.error("Failed to update rule. Please try again.");
     }

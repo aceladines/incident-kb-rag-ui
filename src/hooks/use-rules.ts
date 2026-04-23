@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Rule, RuleFilters, RuleFormData, PaginatedResponse } from "@/lib/types";
 import {
   getRules,
@@ -12,123 +12,76 @@ import {
 } from "@/lib/api/rules";
 
 export function useRules(filters?: RuleFilters) {
-  const [data, setData] = useState<PaginatedResponse<Rule> | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const query = useQuery<PaginatedResponse<Rule>>({
+    queryKey: ["rules", filters],
+    queryFn: () => getRules(filters),
+  });
 
-  const fetchRules = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const result = await getRules(filters);
-      setData(result);
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to fetch rules";
-      setError(message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [filters]);
-
-  useEffect(() => {
-    fetchRules();
-  }, [fetchRules]);
-
-  return { data, isLoading, error, refetch: fetchRules };
+  return {
+    data: query.data ?? null,
+    isLoading: query.isLoading,
+    error: query.error ? (query.error as Error).message ?? "Failed to fetch rules" : null,
+    refetch: query.refetch,
+  };
 }
 
 export function useRule(id: string) {
-  const [data, setData] = useState<Rule | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const query = useQuery<Rule>({
+    queryKey: ["rules", id],
+    queryFn: () => getRule(id),
+  });
 
-  useEffect(() => {
-    const fetch = async () => {
-      setIsLoading(true);
-      try {
-        const result = await getRule(id);
-        setData(result);
-      } catch (err: unknown) {
-        const message =
-          err instanceof Error ? err.message : "Failed to fetch rule";
-        setError(message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetch();
-  }, [id]);
-
-  return { data, isLoading, error };
+  return {
+    data: query.data ?? null,
+    isLoading: query.isLoading,
+    error: query.error ? (query.error as Error).message ?? "Failed to fetch rule" : null,
+  };
 }
 
 export function useRuleMutations() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: ["rules"] });
 
-  const create = useCallback(async (formData: RuleFormData) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const result = await createRule(formData);
-      return result;
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to create rule";
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const createMutation = useMutation({
+    mutationFn: (data: RuleFormData) => createRule(data),
+    onSuccess: invalidate,
+  });
 
-  const update = useCallback(async (id: string, formData: RuleFormData) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const result = await updateRule(id, formData);
-      return result;
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to update rule";
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: RuleFormData }) =>
+      updateRule(id, data),
+    onSuccess: invalidate,
+  });
 
-  const remove = useCallback(async (id: string) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      await deleteRule(id);
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to delete rule";
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const removeMutation = useMutation({
+    mutationFn: (id: string) => deleteRule(id),
+    onSuccess: invalidate,
+  });
 
-  const toggle = useCallback(async (id: string, is_enabled: boolean) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const result = await toggleRule(id, is_enabled);
-      return result;
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to toggle rule";
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const toggleMutation = useMutation({
+    mutationFn: ({ id, is_enabled }: { id: string; is_enabled: boolean }) =>
+      toggleRule(id, is_enabled),
+    onSuccess: invalidate,
+  });
 
-  return { create, update, remove, toggle, isLoading, error };
+  return {
+    create: (data: RuleFormData) => createMutation.mutateAsync(data),
+    update: (id: string, data: RuleFormData) =>
+      updateMutation.mutateAsync({ id, data }),
+    remove: (id: string) => removeMutation.mutateAsync(id),
+    toggle: (id: string, is_enabled: boolean) =>
+      toggleMutation.mutateAsync({ id, is_enabled }),
+    isLoading:
+      createMutation.isPending ||
+      updateMutation.isPending ||
+      removeMutation.isPending ||
+      toggleMutation.isPending,
+    error:
+      createMutation.error?.message ??
+      updateMutation.error?.message ??
+      removeMutation.error?.message ??
+      toggleMutation.error?.message ??
+      null,
+  };
 }
