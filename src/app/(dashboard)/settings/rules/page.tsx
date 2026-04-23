@@ -3,36 +3,60 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Plus, ShieldCheck } from "lucide-react";
+import { Plus, ShieldCheck, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { RuleCard } from "@/components/rules/RuleCard";
-import { mockRules } from "@/lib/mock/rules";
-import type { Rule, RuleCategory } from "@/lib/types";
+import { useRules, useRuleMutations } from "@/hooks/use-rules";
+import type { RuleCategory, RuleFilters } from "@/lib/types";
 
 type FilterTab = "all" | RuleCategory;
 
 export default function RulesPage() {
-  const [rules, setRules] = useState<Rule[]>(
-    [...mockRules].sort((a, b) => a.priority - b.priority)
-  );
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
 
-  const filteredRules = useMemo(() => {
-    if (activeTab === "all") return rules;
-    return rules.filter((r) => r.category === activeTab);
-  }, [rules, activeTab]);
+  const filters = useMemo<RuleFilters | undefined>(() => {
+    if (activeTab === "rag_behavior") return { category: ["rag_behavior"] };
+    if (activeTab === "agent_guardrail") return { category: ["agent_guardrail"] };
+    return undefined;
+  }, [activeTab]);
 
-  const handleToggle = (id: string, enabled: boolean) => {
-    setRules((prev) =>
-      prev.map((r) =>
-        r.id === id ? { ...r, is_enabled: enabled, updated_at: new Date().toISOString() } : r
-      )
-    );
-  };
+  const { data, isLoading, error, refetch } = useRules(filters);
+  const { toggle } = useRuleMutations();
+
+  const rules = data?.items ?? [];
 
   const ragCount = rules.filter((r) => r.category === "rag_behavior").length;
   const guardrailCount = rules.filter((r) => r.category === "agent_guardrail").length;
+
+  const handleToggle = async (id: string, enabled: boolean) => {
+    try {
+      await toggle(id, enabled);
+      refetch();
+    } catch {
+      toast.error("Failed to update rule. Please try again.");
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <p className="text-sm text-destructive">{error}</p>
+        <Button className="mt-4" variant="outline" size="sm" onClick={() => refetch()}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -60,7 +84,7 @@ export default function RulesPage() {
       >
         <TabsList>
           <TabsTrigger value="all">
-            All ({rules.length})
+            All ({data?.total ?? 0})
           </TabsTrigger>
           <TabsTrigger value="rag_behavior">
             RAG Behavior ({ragCount})
@@ -78,7 +102,7 @@ export default function RulesPage() {
             transition={{ duration: 0.2 }}
             className="space-y-3 mt-4"
           >
-            {filteredRules.length === 0 ? (
+            {rules.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <ShieldCheck className="size-10 text-muted-foreground/40" />
                 <p className="mt-3 text-sm text-muted-foreground">
@@ -86,7 +110,7 @@ export default function RulesPage() {
                 </p>
               </div>
             ) : (
-              filteredRules.map((rule) => (
+              rules.map((rule) => (
                 <RuleCard key={rule.id} rule={rule} onToggle={handleToggle} />
               ))
             )}

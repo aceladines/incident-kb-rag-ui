@@ -1,25 +1,27 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { RuleForm } from "@/components/rules/RuleForm";
+import { useRuleMutations } from "@/hooks/use-rules";
 import type { RuleFormData } from "@/lib/types";
 
 export default function NewRulePage() {
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { create, isLoading: isSubmitting } = useRuleMutations();
 
-  const handleSubmit = (data: RuleFormData) => {
-    setIsSubmitting(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false);
+  const handleSubmit = async (data: RuleFormData) => {
+    try {
+      await create(data);
+      toast.success("Rule created successfully.");
       router.push("/settings/rules");
-    }, 1000);
+    } catch {
+      toast.error("Failed to create rule. Please try again.");
+    }
   };
 
   return (

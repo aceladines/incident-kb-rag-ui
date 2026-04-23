@@ -1,26 +1,33 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { RuleForm } from "@/components/rules/RuleForm";
-import { mockRules } from "@/lib/mock/rules";
+import { useRule, useRuleMutations } from "@/hooks/use-rules";
 import type { RuleFormData } from "@/lib/types";
 
 export default function EditRulePage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { data: rule, isLoading, error } = useRule(params.id);
+  const { update, isLoading: isSubmitting } = useRuleMutations();
 
-  const rule = mockRules.find((r) => r.id === params.id);
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
-  if (!rule) {
+  if (error || !rule) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
-        <p className="text-sm text-muted-foreground">Rule not found.</p>
+        <p className="text-sm text-destructive">{error ?? "Rule not found."}</p>
         <Button className="mt-4" variant="outline" size="sm" render={<Link href="/settings/rules" />}>
           Back to Rules
         </Button>
@@ -36,13 +43,14 @@ export default function EditRulePage() {
     is_enabled: rule.is_enabled,
   };
 
-  const handleSubmit = (data: RuleFormData) => {
-    setIsSubmitting(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false);
+  const handleSubmit = async (data: RuleFormData) => {
+    try {
+      await update(params.id, data);
+      toast.success("Rule updated successfully.");
       router.push("/settings/rules");
-    }, 1000);
+    } catch {
+      toast.error("Failed to update rule. Please try again.");
+    }
   };
 
   return (
