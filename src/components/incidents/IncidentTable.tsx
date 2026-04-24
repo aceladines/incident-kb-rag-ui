@@ -55,16 +55,16 @@ export function IncidentTable({ incidents }: IncidentTableProps) {
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card ring-1 ring-foreground/5">
+    <div className="overflow-hidden rounded-xl border border-border bg-card ring-1 ring-foreground/5">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableHead className="w-[35%]">Title</TableHead>
-            <TableHead>Severity</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="hidden lg:table-cell">Team</TableHead>
-            <TableHead className="hidden xl:table-cell">Services</TableHead>
-            <TableHead className="text-right">Created</TableHead>
+            <TableHead className="px-4 py-3">Title</TableHead>
+            <TableHead className="px-4 py-3">Severity</TableHead>
+            <TableHead className="px-4 py-3">Status</TableHead>
+            <TableHead className="hidden px-4 py-3 lg:table-cell">Team</TableHead>
+            <TableHead className="hidden px-4 py-3 xl:table-cell">Services</TableHead>
+            <TableHead className="hidden px-4 py-3 text-right md:table-cell">Created</TableHead>
           </TableRow>
         </TableHeader>
         <motion.tbody
@@ -78,7 +78,7 @@ export function IncidentTable({ incidents }: IncidentTableProps) {
               variants={staggerItem}
               className="border-b transition-colors hover:bg-muted/50"
             >
-              <TableCell className="max-w-0">
+              <TableCell className="max-w-0 px-4 py-3.5 sm:max-w-none">
                 <Link
                   href={`/incidents/${incident.id}`}
                   className="block truncate font-medium text-foreground hover:text-primary transition-colors"
@@ -86,19 +86,19 @@ export function IncidentTable({ incidents }: IncidentTableProps) {
                   {incident.title}
                 </Link>
               </TableCell>
-              <TableCell>
+              <TableCell className="px-4 py-3.5">
                 <SeverityBadge severity={incident.severity} />
               </TableCell>
-              <TableCell>
+              <TableCell className="px-4 py-3.5">
                 <StatusBadge status={incident.status} />
               </TableCell>
-              <TableCell className="hidden lg:table-cell">
+              <TableCell className="hidden px-4 py-3.5 lg:table-cell">
                 <span className="text-sm text-muted-foreground">
                   {getTeamName(incident.responsible_team)}
                 </span>
               </TableCell>
-              <TableCell className="hidden xl:table-cell">
-                <div className="flex flex-wrap gap-1">
+              <TableCell className="hidden px-4 py-3.5 xl:table-cell">
+                <div className="flex flex-wrap gap-1.5">
                   {incident.impacted_services.slice(0, 2).map((svcId) => (
                     <Badge
                       key={svcId}
@@ -115,7 +115,7 @@ export function IncidentTable({ incidents }: IncidentTableProps) {
                   )}
                 </div>
               </TableCell>
-              <TableCell className="text-right text-sm text-muted-foreground whitespace-nowrap">
+              <TableCell className="hidden px-4 py-3.5 text-right text-sm text-muted-foreground whitespace-nowrap md:table-cell">
                 {formatRelativeTime(incident.created_at)}
               </TableCell>
             </motion.tr>
