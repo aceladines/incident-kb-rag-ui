@@ -17,15 +17,17 @@ export function ChartCards({ incidents }: ChartCardsProps) {
       variants={staggerContainer}
       initial="hidden"
       animate="visible"
-      className="flex h-[210px] gap-3"
+      className="flex flex-col gap-3 md:h-[210px] md:flex-row"
     >
-      <motion.div variants={staggerItem} className="flex-1">
-        <SeverityDonutChart incidents={incidents} />
-      </motion.div>
-      <motion.div variants={staggerItem} className="flex-1">
-        <StatusDonutChart incidents={incidents} />
-      </motion.div>
-      <motion.div variants={staggerItem} className="flex-[1.5]">
+      <div className="flex gap-3 md:contents">
+        <motion.div variants={staggerItem} className="h-[200px] flex-1 md:h-auto">
+          <SeverityDonutChart incidents={incidents} />
+        </motion.div>
+        <motion.div variants={staggerItem} className="h-[200px] flex-1 md:h-auto">
+          <StatusDonutChart incidents={incidents} />
+        </motion.div>
+      </div>
+      <motion.div variants={staggerItem} className="h-[200px] md:h-auto md:flex-[1.5]">
         <VolumeAreaChart incidents={incidents} />
       </motion.div>
     </motion.div>
