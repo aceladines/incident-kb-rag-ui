@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useDebounce } from "@/hooks/use-debounce";
 import type { TechSpecCategory, TechSpecStatus } from "@/lib/types";
 
 export interface SpecFiltersState {
@@ -48,7 +50,17 @@ const hasActiveFilters = (filters: SpecFiltersState) =>
   filters.status !== "all";
 
 export function SpecFilters({ filters, onFiltersChange }: SpecFiltersProps) {
+  const [searchInput, setSearchInput] = useState(filters.search);
+  const debouncedSearch = useDebounce(searchInput, 300);
+
+  useEffect(() => {
+    if (debouncedSearch !== filters.search) {
+      onFiltersChange({ ...filters, search: debouncedSearch });
+    }
+  }, [debouncedSearch]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const clearFilters = () => {
+    setSearchInput("");
     onFiltersChange({ search: "", category: "all", status: "all" });
   };
 
@@ -58,14 +70,12 @@ export function SpecFilters({ filters, onFiltersChange }: SpecFiltersProps) {
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Search tech specs..."
-          value={filters.search}
-          onChange={(e) =>
-            onFiltersChange({ ...filters, search: e.target.value })
-          }
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
           className="pl-9"
         />
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Select
           value={filters.category}
           onValueChange={(value) =>
@@ -75,7 +85,7 @@ export function SpecFilters({ filters, onFiltersChange }: SpecFiltersProps) {
             })
           }
         >
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-full sm:w-[160px]">
             <SelectValue placeholder="Category" />
           </SelectTrigger>
           <SelectContent>
@@ -95,7 +105,7 @@ export function SpecFilters({ filters, onFiltersChange }: SpecFiltersProps) {
             })
           }
         >
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-full sm:w-[140px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
