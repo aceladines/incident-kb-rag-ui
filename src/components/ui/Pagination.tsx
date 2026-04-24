@@ -75,48 +75,78 @@ export function Pagination({
 
       {/* Right: page buttons */}
       {totalPages > 1 && (
-        <div className="flex items-center gap-1">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onPageChange(page - 1)}
-            disabled={page <= 1}
-            className="h-8 w-8 p-0"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
+        <>
+          {/* Mobile: simplified prev/next */}
+          <div className="flex items-center gap-2 sm:hidden">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(page - 1)}
+              disabled={page <= 1}
+              className="h-8 px-3"
+            >
+              <ChevronLeft className="mr-1 h-4 w-4" />
+              Prev
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              {page} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(page + 1)}
+              disabled={page >= totalPages}
+              className="h-8 px-3"
+            >
+              Next
+              <ChevronRight className="ml-1 h-4 w-4" />
+            </Button>
+          </div>
 
-          {pageNumbers.map((p, i) =>
-            p === "ellipsis" ? (
-              <span
-                key={`ellipsis-${i}`}
-                className="flex h-8 w-8 items-center justify-center text-sm text-muted-foreground"
-              >
-                ...
-              </span>
-            ) : (
-              <Button
-                key={p}
-                variant={p === page ? "default" : "outline"}
-                size="sm"
-                onClick={() => onPageChange(p)}
-                className="h-8 w-8 p-0"
-              >
-                {p}
-              </Button>
-            ),
-          )}
+          {/* Desktop: full page buttons */}
+          <div className="hidden items-center gap-1 sm:flex">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(page - 1)}
+              disabled={page <= 1}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onPageChange(page + 1)}
-            disabled={page >= totalPages}
-            className="h-8 w-8 p-0"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+            {pageNumbers.map((p, i) =>
+              p === "ellipsis" ? (
+                <span
+                  key={`ellipsis-${i}`}
+                  className="flex h-8 w-8 items-center justify-center text-sm text-muted-foreground"
+                >
+                  ...
+                </span>
+              ) : (
+                <Button
+                  key={p}
+                  variant={p === page ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => onPageChange(p)}
+                  className="h-8 w-8 p-0"
+                >
+                  {p}
+                </Button>
+              ),
+            )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(page + 1)}
+              disabled={page >= totalPages}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </>
       )}
     </div>
   );
