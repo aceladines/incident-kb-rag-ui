@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Sidebar } from "./Sidebar";
 import { Navbar } from "./Navbar";
 import { MobileSidebar } from "./MobileSidebar";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -13,6 +14,7 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   return (
     <TooltipProvider delay={0}>
@@ -28,10 +30,15 @@ export function AppShell({ children }: AppShellProps) {
         {/* Main content */}
         <motion.div
           initial={false}
-          animate={{ marginLeft: sidebarCollapsed ? 64 : 240 }}
+          animate={{
+            marginLeft: isDesktop
+              ? sidebarCollapsed
+                ? 64
+                : 240
+              : 0,
+          }}
           transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="flex flex-1 flex-col md:ml-60"
-          style={{ marginLeft: undefined }}
+          className="flex flex-1 flex-col"
         >
           {/* Mobile header with hamburger */}
           <div className="flex items-center md:hidden">
