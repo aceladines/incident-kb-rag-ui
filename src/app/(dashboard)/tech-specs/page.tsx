@@ -109,10 +109,10 @@ export default function TechSpecsListPage() {
                 variants={staggerContainer}
                 initial="hidden"
                 animate="visible"
-                className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+                className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
               >
                 {specs.map((spec) => (
-                  <motion.div key={spec.id} variants={staggerItem}>
+                  <motion.div key={spec.id} variants={staggerItem} className="h-full">
                     <SpecCard spec={spec} />
                   </motion.div>
                 ))}

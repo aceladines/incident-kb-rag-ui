@@ -114,10 +114,10 @@ export default function KbListPage() {
                 variants={staggerContainer}
                 initial="hidden"
                 animate="visible"
-                className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+                className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
               >
                 {articles.map((article) => (
-                  <motion.div key={article.id} variants={staggerItem}>
+                  <motion.div key={article.id} variants={staggerItem} className="h-full">
                     <ArticleCard article={article} />
                   </motion.div>
                 ))}
