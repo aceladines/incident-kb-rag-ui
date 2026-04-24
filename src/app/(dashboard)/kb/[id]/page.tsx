@@ -165,7 +165,7 @@ export default function KbArticleDetailPage() {
         </Card>
 
         {/* Sidebar metadata */}
-        <div className="space-y-4">
+        <div className="order-first space-y-4 lg:order-last">
           <Card>
             <CardHeader>
               <CardTitle>Details</CardTitle>

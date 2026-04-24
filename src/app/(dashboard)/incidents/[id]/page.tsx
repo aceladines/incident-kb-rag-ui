@@ -197,7 +197,7 @@ export default function IncidentDetailPage({
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
+        <div className="order-first space-y-6 lg:order-last">
           <Card>
             <CardHeader>
               <CardTitle>Metadata</CardTitle>
