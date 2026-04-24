@@ -1,9 +1,9 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { AlertTriangle, BookOpen, Layers } from "lucide-react";
+import { AlertTriangle, BookOpen, FileCode, Layers } from "lucide-react";
 
-type SourceType = "all" | "incident" | "kb_article";
+type SourceType = "all" | "incident" | "kb_article" | "tech_spec";
 
 interface SourceTypeToggleProps {
   value: SourceType;
@@ -14,11 +14,12 @@ const OPTIONS: { value: SourceType; label: string; icon: typeof Layers }[] = [
   { value: "all", label: "All", icon: Layers },
   { value: "incident", label: "Incidents", icon: AlertTriangle },
   { value: "kb_article", label: "KB Articles", icon: BookOpen },
+  { value: "tech_spec", label: "Tech Specs", icon: FileCode },
 ];
 
 export function SourceTypeToggle({ value, onChange }: SourceTypeToggleProps) {
   return (
-    <div className="inline-flex items-center gap-0.5 rounded-lg bg-muted p-1">
+    <div className="inline-flex flex-wrap items-center gap-0.5 rounded-lg bg-muted p-1">
       {OPTIONS.map((option) => {
         const Icon = option.icon;
         const isActive = value === option.value;
