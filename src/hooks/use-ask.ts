@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import type { AskQuery, AskResponse } from "@/lib/types";
 import { askQuestion } from "@/lib/api/ask";
+import { getErrorMessage } from "@/lib/api/client";
 
 export function useAsk() {
   const [response, setResponse] = useState<AskResponse | null>(null);
@@ -18,9 +19,7 @@ export function useAsk() {
       setResponse(result);
       return result;
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to get response";
-      setError(message);
+      setError(getErrorMessage(err, "Failed to get response"));
       throw err;
     } finally {
       setIsLoading(false);

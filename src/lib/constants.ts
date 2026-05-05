@@ -1,6 +1,7 @@
 import type { SelectOption } from "./types/common";
 import type { IncidentSeverity, IncidentStatus } from "./types/incident";
 import type { KbArticleCategory, KbArticleStatus } from "./types/kb";
+import type { TechSpecCategory, TechSpecStatus } from "./types/tech-spec";
 import type { RuleCategory } from "./types/rule";
 
 // ---------------------------------------------------------------------------
@@ -87,6 +88,49 @@ export const KB_STATUS_MAP: Record<KbArticleStatus, KbStatusOption> = Object.fro
 ) as Record<KbArticleStatus, KbStatusOption>;
 
 // ---------------------------------------------------------------------------
+// Tech Spec Category
+// ---------------------------------------------------------------------------
+
+export interface TechSpecCategoryOption extends SelectOption {
+  value: TechSpecCategory;
+  color: string;
+}
+
+export const TECH_SPEC_CATEGORY_OPTIONS: TechSpecCategoryOption[] = [
+  { label: "API", value: "api", color: "text-cyan-500 bg-cyan-500/10 border-cyan-500/20" },
+  { label: "Architecture", value: "architecture", color: "text-indigo-500 bg-indigo-500/10 border-indigo-500/20" },
+  { label: "Infrastructure", value: "infrastructure", color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" },
+  { label: "Database", value: "database", color: "text-violet-500 bg-violet-500/10 border-violet-500/20" },
+  { label: "Security", value: "security", color: "text-rose-500 bg-rose-500/10 border-rose-500/20" },
+  { label: "Networking", value: "networking", color: "text-sky-500 bg-sky-500/10 border-sky-500/20" },
+  { label: "Integration", value: "integration", color: "text-amber-500 bg-amber-500/10 border-amber-500/20" },
+  { label: "General", value: "general", color: "text-muted-foreground bg-muted border-border" },
+];
+
+export const TECH_SPEC_CATEGORY_MAP: Record<TechSpecCategory, TechSpecCategoryOption> = Object.fromEntries(
+  TECH_SPEC_CATEGORY_OPTIONS.map((o) => [o.value, o]),
+) as Record<TechSpecCategory, TechSpecCategoryOption>;
+
+// ---------------------------------------------------------------------------
+// Tech Spec Status
+// ---------------------------------------------------------------------------
+
+export interface TechSpecStatusOption extends SelectOption {
+  value: TechSpecStatus;
+  color: string;
+}
+
+export const TECH_SPEC_STATUS_OPTIONS: TechSpecStatusOption[] = [
+  { label: "Draft", value: "draft", color: "text-yellow-500 bg-yellow-500/10 border-yellow-500/20" },
+  { label: "Published", value: "published", color: "text-green-500 bg-green-500/10 border-green-500/20" },
+  { label: "Archived", value: "archived", color: "text-muted-foreground bg-muted border-border" },
+];
+
+export const TECH_SPEC_STATUS_MAP: Record<TechSpecStatus, TechSpecStatusOption> = Object.fromEntries(
+  TECH_SPEC_STATUS_OPTIONS.map((o) => [o.value, o]),
+) as Record<TechSpecStatus, TechSpecStatusOption>;
+
+// ---------------------------------------------------------------------------
 // Rule Category
 // ---------------------------------------------------------------------------
 
@@ -118,6 +162,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", path: "/", icon: "LayoutDashboard" },
   { label: "Incidents", path: "/incidents", icon: "AlertTriangle" },
   { label: "Knowledge Base", path: "/kb", icon: "BookOpen" },
+  { label: "Tech Specs", path: "/tech-specs", icon: "FileCode" },
   { label: "Ask", path: "/ask", icon: "MessageSquare" },
   { label: "Settings", path: "/settings", icon: "Settings" },
 ];
@@ -128,3 +173,10 @@ export const NAV_ITEMS: NavItem[] = [
 
 export const DEFAULT_PAGE_SIZE = 20;
 export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+
+// ---------------------------------------------------------------------------
+// Validation Limits
+// ---------------------------------------------------------------------------
+
+export const ASK_QUERY_MAX_LENGTH = 5_000;
+export const PROCESS_INCIDENT_MAX_LENGTH = 50_000;

@@ -16,7 +16,7 @@ Complete visual overhaul of the Incident KB frontend from the current corporate 
 | Token | Current | New | Notes |
 |---|---|---|---|
 | `--background` | `oklch(0.13 0.015 260)` (dark slate) | `#09090b` | True black |
-| `--card` | `oklch(0.17 0.015 260)` | `#111113` | Charcoal surface |
+| `--card` | `oklch(0.17 0.015 260)` | `#111113` | Charcoal surface |V
 | `--border` | `oklch(0.25 0.015 260)` | `#222222` | Sharp, visible |
 | `--input` | `oklch(0.25 0.015 260)` | `#0a0a0c` | Sunken black |
 | `--primary` | `oklch(0.60 0.19 25)` | `#dc2626` | Sharper red |

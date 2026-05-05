@@ -22,6 +22,7 @@ export function ArticleCard({ article }: ArticleCardProps) {
     <motion.div
       whileHover={{ y: -2 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
+      className="h-full"
     >
       <Link href={`/kb/${article.id}`} className="block h-full">
         <Card
@@ -45,7 +46,7 @@ export function ArticleCard({ article }: ArticleCardProps) {
             <p className="line-clamp-2 text-sm text-muted-foreground">
               {article.summary}
             </p>
-            <div className="space-y-2">
+            <div className="mt-auto space-y-2">
               {article.tags.length > 0 && (
                 <div className="flex flex-wrap items-center gap-1.5">
                   <Tag className="h-3 w-3 text-muted-foreground" />

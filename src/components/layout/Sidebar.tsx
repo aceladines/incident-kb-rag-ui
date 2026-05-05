@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   AlertTriangle,
   BookOpen,
+  FileCode,
   Search,
   Settings,
   ChevronLeft,
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
   { label: "Dashboard", path: "/", icon: LayoutDashboard },
   { label: "Incidents", path: "/incidents", icon: AlertTriangle },
   { label: "Knowledge Base", path: "/kb", icon: BookOpen },
+  { label: "Tech Specs", path: "/tech-specs", icon: FileCode },
   { label: "Ask", path: "/ask", icon: Search },
 ];
 

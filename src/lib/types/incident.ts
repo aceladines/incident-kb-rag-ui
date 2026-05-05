@@ -34,3 +34,17 @@ export interface IncidentFilters {
   page?: number;
   page_size?: number;
 }
+
+// ---------------------------------------------------------------------------
+// Process Incident (AI agent processing endpoint)
+// ---------------------------------------------------------------------------
+
+export interface ProcessIncidentRequest {
+  error_message: string;
+}
+
+export interface ProcessIncidentResponse {
+  task_id: string;
+  status: "accepted" | "duplicate";
+  message?: string;
+}

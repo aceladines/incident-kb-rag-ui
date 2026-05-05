@@ -6,6 +6,23 @@ export function isMockMode(): boolean {
   return process.env.NEXT_PUBLIC_USE_MOCK === "true";
 }
 
+/** Type guard for ApiError objects thrown by the API client. */
+export function isApiError(err: unknown): err is ApiError {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "detail" in err &&
+    "status" in err
+  );
+}
+
+/** Extract a user-facing message from an unknown error. */
+export function getErrorMessage(err: unknown, fallback = "An unexpected error occurred"): string {
+  if (isApiError(err)) return err.detail;
+  if (err instanceof Error) return err.message;
+  return fallback;
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -38,6 +55,10 @@ class ApiClient {
         // ignore parse errors
       }
       throw error;
+    }
+
+    if (response.status === 204) {
+      return undefined as T;
     }
 
     return response.json() as Promise<T>;

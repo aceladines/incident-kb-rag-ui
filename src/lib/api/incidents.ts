@@ -2,6 +2,8 @@ import type {
   Incident,
   IncidentFormData,
   IncidentFilters,
+  ProcessIncidentRequest,
+  ProcessIncidentResponse,
   PaginatedResponse,
 } from "@/lib/types";
 import { apiClient, isMockMode } from "./client";
@@ -164,4 +166,25 @@ export async function deleteIncident(id: string): Promise<void> {
   }
 
   await apiClient.del<void>(`/api/incidents/${id}`);
+}
+
+/**
+ * Submits an error message to the AI agent for automated processing
+ * (RCA, fix application, validation).
+ *
+ * Returns `status: "duplicate"` with the existing `task_id` when
+ * the same message was submitted within the 60-second dedup window.
+ */
+export async function processIncident(
+  data: ProcessIncidentRequest,
+): Promise<ProcessIncidentResponse> {
+  if (isMockMode()) {
+    await delay();
+    return {
+      task_id: `task-${Date.now()}`,
+      status: "accepted",
+    };
+  }
+
+  return apiClient.post<ProcessIncidentResponse>("/process_incident", data);
 }

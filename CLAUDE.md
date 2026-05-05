@@ -6,9 +6,10 @@ Internal support team portal for logging incidents, managing a knowledge base, c
 
 **The existing backend** already leverages the Microsoft AI Agent framework to automate IT incident workflows: processing incidents, performing AI-driven root cause analysis (RCA), applying fixes, validating resolutions, integrating with ITSM, and sending notifications. The RAG and KB capabilities described here are being added on top of that existing automation pipeline.
 
-The RAG pipeline retrieves from **two source types**:
+The RAG pipeline retrieves from **three source types**:
 - **Incidents** — reactive records of past/ongoing issues, their impact, and fixes
 - **Knowledge Base (KB) articles** — proactive documentation: runbooks, SOPs, troubleshooting guides, FAQs, configuration references
+- **Technical Specifications (Tech Specs)** — technical design documents: API contracts, architecture decisions, infrastructure specs, database schemas
 
 **Rules** define the non-negotiable boundaries and behavioral configuration for:
 - **RAG behavior** — relevance thresholds, source preferences, staleness policies, hallucination safeguards
@@ -65,6 +66,12 @@ src/
 │       │   └── [id]/
 │       │       ├── page.tsx    # KB article reader view
 │       │       └── edit/page.tsx # Edit KB article
+│       ├── tech-specs/
+│       │   ├── page.tsx        # Tech spec list with filters
+│       │   ├── new/page.tsx    # Create tech spec
+│       │   └── [id]/
+│       │       ├── page.tsx    # Tech spec detail view
+│       │       └── edit/page.tsx # Edit tech spec
 │       └── settings/
 │           ├── page.tsx        # Service catalog + team management
 │           └── rules/
@@ -77,6 +84,7 @@ src/
 │   ├── auth/                   # LoginForm, SignupForm
 │   ├── incidents/              # IncidentForm, IncidentTable, IncidentFilters, SeverityBadge, StatusBadge
 │   ├── kb/                     # ArticleForm, ArticleCard, ArticleFilters, CategoryBadge, StatusBadge
+│   ├── tech-specs/             # TechSpecForm, TechSpecCard, TechSpecFilters, CategoryBadge, StatusBadge
 │   ├── rules/                  # RuleForm, RuleCard, RuleCategoryBadge
 │   ├── ask/                    # QueryInput, AnswerPanel, SourceCard, SourceTypeToggle
 │   └── dashboard/              # StatsCards, RecentIncidentsList, RecentArticlesList, QuickSearch
@@ -85,12 +93,13 @@ src/
 │   │   ├── client.ts           # Base fetch wrapper
 │   │   ├── incidents.ts        # Incident CRUD
 │   │   ├── kb.ts               # KB article CRUD
+│   │   ├── tech-specs.ts       # Tech spec CRUD
 │   │   ├── rules.ts            # Rule CRUD
 │   │   ├── ask.ts              # RAG query
 │   │   ├── services.ts         # Service catalog
 │   │   └── teams.ts            # Teams
 │   ├── types/                  # Shared TypeScript interfaces
-│   │   ├── incident.ts, kb.ts, rule.ts, ask.ts, common.ts, auth.ts
+│   │   ├── incident.ts, kb.ts, tech-spec.ts, rule.ts, ask.ts, common.ts, auth.ts
 │   │   └── index.ts            # Barrel export
 │   ├── supabase/               # Supabase auth clients
 │   │   ├── client.ts           # Browser client (graceful fallback when not configured)
@@ -99,6 +108,7 @@ src/
 │   ├── mock/                   # Mock data (used until backend is ready)
 │   │   ├── incidents.ts
 │   │   ├── kb.ts
+│   │   ├── tech-specs.ts
 │   │   ├── rules.ts
 │   │   ├── services.ts
 │   │   └── teams.ts
@@ -109,6 +119,7 @@ src/
 │   ├── use-auth.ts             # Supabase auth state and actions
 │   ├── use-incidents.ts        # Incident data fetching/mutation hooks
 │   ├── use-kb.ts               # KB article data fetching/mutation hooks
+│   ├── use-tech-specs.ts       # Tech spec data fetching/mutation hooks
 │   ├── use-rules.ts            # Rule data fetching/mutation hooks
 │   └── use-ask.ts              # RAG query hook
 ```
@@ -188,6 +199,46 @@ interface KbArticleFormData {
 ```
 
 ```typescript
+// lib/types/tech-spec.ts
+
+type TechSpecStatus = "draft" | "published" | "archived";
+type TechSpecCategory =
+  | "api"
+  | "architecture"
+  | "infrastructure"
+  | "database"
+  | "security"
+  | "networking"
+  | "integration"
+  | "general";
+
+interface TechSpec {
+  id: string;
+  title: string;
+  content: string;                // markdown — technical design document body
+  summary: string;                // short plain-text summary for search result previews
+  category: TechSpecCategory;
+  tags: string[];                 // freeform tags for filtering and retrieval
+  related_services: string[];     // IDs from service catalog
+  status: TechSpecStatus;
+  created_by: string;
+  created_at: string;             // ISO 8601
+  updated_at: string;
+  published_at: string | null;
+}
+
+interface TechSpecFormData {
+  title: string;
+  content: string;
+  summary: string;
+  category: TechSpecCategory;
+  tags: string[];
+  related_services: string[];
+  status: TechSpecStatus;
+}
+```
+
+```typescript
 // lib/types/rule.ts
 
 // Two categories matching what the Microsoft AI Agent framework consumes
@@ -234,14 +285,15 @@ interface RuleFormData {
 ```typescript
 // lib/types/ask.ts
 
-// Discriminated union so the UI can render incident sources and KB sources differently
+// Discriminated union so the UI can render each source type differently
 type SourceReference =
   | { type: "incident"; data: Incident }
-  | { type: "kb_article"; data: KbArticle };
+  | { type: "kb_article"; data: KbArticle }
+  | { type: "tech_spec"; data: TechSpec };
 
 interface AskQuery {
   query: string;
-  source_types?: ("incident" | "kb_article")[]; // optional filter: search only incidents, only KB, or both (default)
+  source_types?: ("incident" | "kb_article" | "tech_spec")[]; // optional filter: search only specific source types, or all (default)
   filters?: {
     status?: IncidentStatus[];
     severity?: IncidentSeverity[];
@@ -249,6 +301,8 @@ interface AskQuery {
     team?: string;
     kb_category?: KbArticleCategory[];
     kb_tags?: string[];
+    tech_spec_category?: TechSpecCategory[];
+    tech_spec_tags?: string[];
   };
 }
 
@@ -276,12 +330,17 @@ The frontend communicates with the FastAPI backend at a configurable base URL (`
 | GET    | /api/kb/{id}           | Get KB article detail                        |
 | PUT    | /api/kb/{id}           | Update KB article                            |
 | DELETE | /api/kb/{id}           | Delete KB article                            |
+| POST   | /api/tech-specs        | Create tech spec                             |
+| GET    | /api/tech-specs        | List tech specs (query params for filters/pagination) |
+| GET    | /api/tech-specs/{id}   | Get tech spec detail                         |
+| PUT    | /api/tech-specs/{id}   | Update tech spec                             |
+| DELETE | /api/tech-specs/{id}   | Delete tech spec                             |
 | POST   | /api/rules             | Create rule (admin-only)                     |
 | GET    | /api/rules             | List rules (filterable by category, enabled status) |
 | GET    | /api/rules/{id}        | Get rule detail                              |
 | PUT    | /api/rules/{id}        | Update rule (admin-only)                     |
 | DELETE | /api/rules/{id}        | Delete rule (admin-only)                     |
-| POST   | /api/ask               | RAG query → returns answer + sources (incidents & KB) |
+| POST   | /api/ask               | RAG query → returns answer + sources (incidents, KB & tech specs) |
 | GET    | /api/services          | List service catalog entries                 |
 | GET    | /api/teams             | List teams/groups                            |
 
